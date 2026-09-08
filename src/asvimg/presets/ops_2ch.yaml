@@ -1,0 +1,54 @@
+channels_name:
+- BL
+- BL
+channels_prop:
+- source
+- donner
+do_registration: true
+registration_cache: force
+linear_subt: true
+baseline_percentile: 5.0
+start_initial_frames: null
+ignore_last_frames: 0
+binning: 2
+flip: false
+delete: true
+fps: 40
+use_mmap: false        # dF/F read strategy: false = channels in RAM (short recordings / big machines); true = memmap + row-strip streaming (bounded peak memory)
+registration_batch_size: 500   # frames per registration batch (read -> register -> bin -> write)
+usfac: 50
+template: null
+template_stride: 100
+template_ch: 0
+max_frames: null
+filter_xyt: null
+annotation: cache
+annotation_allow_reflection: false
+ch_for_annotation: 0
+roi_signal: dff
+save_roi_signals: both
+corr_method: gsr
+corr_auto_threshold: true
+corr_edge_density: 0.25
+corr_network_threshold: 0.30000001192092896
+save_movie: true
+save_raw_each_ch: false
+save_registered_each_ch: false
+save_annotated_each_ch: true
+save_annotated_dF_mat: true
+post_annotation_time_average: 1
+tiff_format: big-tiff
+tiff_compression: true
+save_figures: png+pdf
+pca_n_components: 10
+pca_smooth_sigma: 5.0
+pca_skip_frames: 10    # temporal stride for PCA/ICA fit input (fit-only; dF/F stays full-length)
+skip_ica: true
+ica_n_components: null
+ica_max_iter: 1000
+ica_random_state: 0
+save_movie_speed: 2.0
+save_movie_codec: MJPG
+save_movie_vminmax:
+- -2.0
+- 10.0

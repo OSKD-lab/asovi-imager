@@ -1,0 +1,37 @@
+# Pipeline-01 default configuration
+input_dir: Analysis/_sampleData01
+# null means input_dir/asi/<output_format>
+output_dir: null
+
+# Channel cycle definition
+# Each frame is assigned to channels_name[frame_index % len(channels_name)]
+# "donner" channels provide control signal, "source" channels are the activity signal
+# null → default 2ch ["BL", "BL"] / ["source", "donner"]
+channels_name: null
+channels_prop: null
+
+linear_subt: true
+binning: 2
+flip: false
+delete: true
+
+fps: 20
+use_mmap: false      # dF/F read strategy: false = channels in RAM; true = memmap + row-strip streaming
+registration_batch_size: 500   # frames per registration batch (read -> register -> bin -> write)
+usfac: 50       # subpixel precision 1/usfac px (nearly-free sweet spot after vectorization)
+template_stride: 100
+
+# mat | npy | h5
+output_format: mat
+
+# null means infer from first tif filename (timelapse..._MM)
+exp_name: null
+
+# Optional frame processing limit (null = process all frames)
+max_frames: null
+
+# Write input metadata YAML (timestamps/stamps when available)
+output_metadata_yaml: true
+
+# DCIMG backend: auto (SDK preferred), sdk, native
+dcimg_backend: auto

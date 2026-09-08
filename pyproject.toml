@@ -1,0 +1,69 @@
+[project]
+name = "asovi-imager"
+version = "0.1.0"
+description = "Wide-field cortical imaging (WFCI) analysis pipeline: registration, linear subtraction (dF/F), PCA/ICA denoising, Allen CCFv3 atlas registration, and ROI signal extraction"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dearpygui>=2.2",
+    "h5py>=3.16.0",
+    "hdf5plugin>=5.0.0",
+    "ipykernel>=7.2.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.8",
+    "natsort>=8.4.0",
+    "numba>=0.64.0",
+    "numpy>=2.4.3",
+    "nwbinspector>=0.6",  # NWB export validation (nwbinspector --config dandi); pulls pynwb
+    "opencv-python>=4.13.0.92",
+    "pandas>=3.0.1",
+    "pynrrd>=1.1",  # read Allen CCF .nrrd volumes in the atlas builder
+    "pynwb>=4.0",  # NWB writer for asovi-nwb (code targets the 4.0 API: create_device(model_name=), add_column-after-rows)
+    "pyyaml>=6.0.3",
+    "scikit-image>=0.26.0",
+    "scikit-learn>=1.8.0",
+    "scipy>=1.17.1",
+    "seaborn>=0.13.2",
+    "sif-parser>=0.3.6",
+    "tifffile>=2026.3.3",
+    "torch>=2.6.0",
+    "tqdm>=4.67.3",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# src-layout: the single distributed package is `asvimg`, and everything under it
+# ships -- including gui/assets/*.ico|png and presets/*.yaml, which the code
+# reaches through `Path(__file__).parent`, so they must be inside the package.
+# tests/ and notebooks/ deliberately stay out of the wheel.
+[tool.hatch.build.targets.wheel]
+packages = ["src/asvimg"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/asvimg", "tests", "README.md", "LICENSE", "THIRD_PARTY_NOTICES.md"]
+
+[project.scripts]
+asovi-preprocess = "asvimg.preprocess:main"
+asovi-pipeline01 = "asvimg.preprocess:main"  # deprecated alias
+asovi-run = "asvimg.run_pipeline:main"  # full headless pipeline
+asovi-gui = "asvimg.gui:launch"  # dearpygui dashboard
+asovi-demux = "asvimg.gui.demux_editor:main"  # standalone demux-correction editor
+asovi-nwb = "asvimg.gui.nwb_editor:main"  # standalone NWB builder (metadata + export)
+asovi-atlas = "asvimg.atlas_build:main"  # build a top-view CCF atlas from the annotation volume
+asovi-atlas-gui = "asvimg.gui.atlas_editor:main"  # GUI to build a 2D atlas with adjustable tilt
+asovi-sifx2tiff = "asvimg.sifx_convert:main"  # .sifx spool -> stacked TIFF
