@@ -20,28 +20,27 @@ what comes out**; everything else hangs off it.
 | --- | --- |
 | a scientist who just wants to run it | [**はじめかた (日本語ユーザーガイド)**](docs/getting_started_jp.md) — install, GUI, stage by stage, troubleshooting |
 | setting up / configuring a run | this README — [entry points](#entry-points), [configuration](#configuration), [output layout](#output-file-layout) |
-| about to change the code, or asking **"why is it like this?"** | the module docstrings and **`git log`** — see below. Benchmarks, rejected alternatives and deliberate behaviour changes are recorded in the commit messages; there is no hand-maintained changelog, because a second timeline only drifts from the first |
+| about to change the code, or asking **"why is it like this?"** | the module docstrings, which carry the measured numbers and the traps — and `git log` for anything committed here. See [Reading the history](#reading-the-history) for what this repository's history does and does not contain |
 
 ### Reading the history
 
-Design decisions live in the commit messages, not in a doc. They record what was
-measured, what was rejected and why, and which behaviours changed on purpose —
-which is exactly what a doc stops telling you six months later.
+This repository begins at a single commit: a snapshot of the lab's internal
+repository, published without the history that led to it. So `git log` here
+answers "what changed since the release", not "why is it like this" — the
+reasoning behind anything older than the first commit is in the module
+docstrings, which carry the measured numbers and the traps that are easy to
+reintroduce.
+
+From here on the commit messages are the record, as usual: what was measured,
+what was rejected and why, and which behaviours changed on purpose. There is no
+hand-maintained changelog, because a second timeline only drifts from the first.
 
 ```bash
-git log --oneline -20                            # what has been happening
-git log -p -- src/asvimg/wfci.py     # why this file looks like this
-git log -S warp_weight_maps --oneline            # when a symbol was introduced (= the decision)
-git log -G "dtype=np.float32" --oneline          # when a line matching a pattern changed
-git log --grep=demux --oneline                   # everything about one subsystem
-git blame src/asvimg/annotation.py   # then `git show <sha>` on the line you doubt
+git log --oneline -20                  # what has been happening
+git log -p -- src/asvimg/wfci.py       # why this file looks like this
+git log --grep=dtype --oneline         # deliberate numeric changes are named in the message
+git blame src/asvimg/annotation.py     # then `git show <sha>` on the line you doubt
 ```
-
-Deliberate numeric changes — a payload dtype, a rounding difference, an artifact
-that is no longer bit-identical — are always spelled out in the commit that makes
-them. Search the **messages** for those (`git log --grep=dtype`,
-`git log --grep=float32`): `-S <name>` only finds commits that added or removed
-that string, so it will miss a change to a symbol that already existed.
 
 ## Environment
 

@@ -27,6 +27,7 @@ from . import (  # noqa: E402  (after backend selection)
     PipelineConfig,
     TqdmReporter,
     default_output_dir,
+    load_cli_config,
     load_config,
 )
 from .runner import PipelineSession  # noqa: E402
@@ -49,7 +50,8 @@ def _resolve_output_dir(config: PipelineConfig) -> Path:
 
 
 def run_from_args(args: argparse.Namespace) -> None:
-    config = load_config(Path(args.config))
+    config, config_source = load_cli_config(args.config)
+    print(f"[asovi] {config_source}")
     if args.input_dir:
         config.input_dir = args.input_dir
     if args.output_dir:
@@ -90,8 +92,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--config",
-        default="pipeline01_config.yaml",
-        help="YAML config file or a directory with db.yaml/ops.yaml",
+        default=None,
+        help="YAML config file or a directory with db.yaml/ops.yaml. "
+             "Optional: without it, ./pipeline01_config.yaml is used when present, "
+             "otherwise the built-in defaults",
     )
     parser.add_argument("--input-dir", default=None, help="Override input directory")
     parser.add_argument("--output-dir", default=None, help="Override output directory")

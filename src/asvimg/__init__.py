@@ -21,6 +21,7 @@ from .config import (
     PreprocessStats,
     default_output_dir,
     infer_exp_name,
+    load_cli_config,
     load_config,
     save_config,
 )
@@ -213,6 +214,7 @@ __all__ = [
     "annotation_group_name",
     "load_atlas",
     "load_atlas_source_mean",
+    "load_cli_config",
     "load_config",
     "load_dcimg_metadata",
     "load_dff",

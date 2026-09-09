@@ -44,6 +44,7 @@ from . import (
     get_frame_count,
     infer_exp_name,
     iter_frames_with_metadata,
+    load_cli_config,
     load_config,
     NullReporter,
     build_demux_correction,
@@ -1109,7 +1110,8 @@ class PreprocessRunner:
 
 
 def run_from_args(args: argparse.Namespace) -> None:
-    config = load_config(Path(args.config))
+    config, config_source = load_cli_config(args.config)
+    print(f"[asovi] {config_source}")
     if args.input_dir:
         config.input_dir = args.input_dir
     if args.output_dir:
@@ -1138,8 +1140,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--config",
-        default="pipeline01_config.yaml",
-        help="YAML config path",
+        default=None,
+        help="YAML config path. Optional: without it, ./pipeline01_config.yaml is "
+             "used when present, otherwise the built-in defaults",
     )
     parser.add_argument(
         "--input-dir",

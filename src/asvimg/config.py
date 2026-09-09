@@ -444,6 +444,29 @@ class PreprocessStats:
     demux_slip_detected: bool = False  # a phase slip (dropped-frame channel shift) was found
 
 
+LEGACY_CONFIG_NAME = "pipeline01_config.yaml"
+
+
+def load_cli_config(config_path: str | Path | None) -> tuple["PipelineConfig", str]:
+    """Config for a CLI run, plus one line saying where it came from.
+
+    ``--config`` has to be optional.  An installed copy has no checkout to find a
+    YAML in, so ``asovi-run --input-dir DIR`` must work on its own; requiring a
+    file that only exists in the repository made both CLIs die with
+    ``FileNotFoundError: pipeline01_config.yaml`` for every pip user.
+
+    A ``pipeline01_config.yaml`` in the working directory is still picked up when
+    no ``--config`` is given -- that is what running from a checkout has always
+    done -- but the caller is told, instead of it happening invisibly.
+    """
+    if config_path:
+        return load_config(Path(config_path)), f"config: {config_path}"
+    legacy = Path(LEGACY_CONFIG_NAME)
+    if legacy.is_file():
+        return load_config(legacy), f"config: ./{LEGACY_CONFIG_NAME} (found in the working directory)"
+    return PipelineConfig(), "config: built-in defaults (no --config given)"
+
+
 BUNDLED_ATLAS = Path(__file__).resolve().parent / "data" / "wfciAnnotationData.mat"
 
 
