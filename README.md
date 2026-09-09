@@ -54,6 +54,26 @@ git blame src/asvimg/annotation.py     # then `git show <sha>` on the line you d
 pip install git+https://github.com/OSKD-lab/asovi-imager
 ```
 
+That is the whole pipeline — preprocess through export, the GUI included. Three
+features have dependencies heavy enough not to install for everyone; each is
+imported only where it is used, and asking for it without the extra tells you
+which one to add:
+
+| Extra | Adds | For |
+| --- | --- | --- |
+| `[nwb]` | pynwb, nwbinspector | `asovi-nwb` — packaging a processed folder as NWB |
+| `[atlas]` | pynrrd | `asovi-atlas` reading CCF volumes as `.nrrd` (`.npy` needs nothing) |
+| `[notebook]` | jupyter, ipykernel | running `notebooks/` |
+| `[benchmark]` | numba | the Numba registrator, which only `tests/benchmark_dft_compare.py` uses |
+| `[all]` | all of the above | |
+
+```bash
+pip install "asovi-imager[nwb] @ git+https://github.com/OSKD-lab/asovi-imager"
+```
+
+`[benchmark]` is the one worth skipping: numba brings ~120 MB of llvmlite for a
+registrator that runs at ~175 ms/frame against the production torch one's ~12.
+
 **Or work on it** — `uv sync` installs the dependencies *and* the project itself,
 so the `asovi-*` commands and `import asvimg` both work from a checkout:
 

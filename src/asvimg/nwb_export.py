@@ -29,8 +29,16 @@ from uuid import uuid4
 
 import numpy as np
 
-from hdmf.backends.hdf5.h5_utils import H5DataIO
-from hdmf.data_utils import GenericDataChunkIterator
+try:
+    # hdmf ships with pynwb and cannot be deferred: GenericDataChunkIterator is a
+    # base class below, so it has to exist when this module is imported.  Importing
+    # `asvimg` does not reach here.
+    from hdmf.backends.hdf5.h5_utils import H5DataIO
+    from hdmf.data_utils import GenericDataChunkIterator
+except ModuleNotFoundError as exc:  # optional extra
+    raise ModuleNotFoundError(
+        'NWB export needs the `nwb` extra: pip install "asovi-imager[nwb]"'
+    ) from exc
 
 from .nwb_meta import ChannelMeta, ExportOptions, NwbMetadata
 
@@ -135,14 +143,19 @@ def write_nwb(
     demand when a selected payload needs them; if they cannot be obtained, the
     atlas-dependent payloads are skipped (logged), not fatal.
     """
-    from pynwb import NWBFile, NWBHDF5IO
-    from pynwb.file import Subject
-    from pynwb.ophys import (
-        OpticalChannel, OnePhotonSeries, ImageSegmentation, RoiResponseSeries,
-        Fluorescence, DfOverF,
-    )
-    from pynwb.base import Images
-    from pynwb.image import GrayscaleImage
+    try:
+        from pynwb import NWBFile, NWBHDF5IO
+        from pynwb.file import Subject
+        from pynwb.ophys import (
+            OpticalChannel, OnePhotonSeries, ImageSegmentation, RoiResponseSeries,
+            Fluorescence, DfOverF,
+        )
+        from pynwb.base import Images
+        from pynwb.image import GrayscaleImage
+    except ModuleNotFoundError as exc:  # pynwb is an optional extra
+        raise ModuleNotFoundError(
+            'writing NWB needs the `nwb` extra: pip install "asovi-imager[nwb]"'
+        ) from exc
     from .io import read_reg_meta, resolve_exp_stem
 
     if stage is None:

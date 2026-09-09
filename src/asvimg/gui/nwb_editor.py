@@ -449,8 +449,14 @@ class NwbEditor:
 
         def _work():
             try:
-                import nwbinspector as ni
-                from nwbinspector import inspect_nwbfile
+                try:
+                    import nwbinspector as ni
+                    from nwbinspector import inspect_nwbfile
+                except ModuleNotFoundError as exc:  # optional extra
+                    raise ModuleNotFoundError(
+                        'validating NWB needs the `nwb` extra: '
+                        'pip install "asovi-imager[nwb]"'
+                    ) from exc
 
                 try:
                     msgs = list(inspect_nwbfile(nwbfile_path=path, config=ni.load_config("dandi")))

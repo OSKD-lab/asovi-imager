@@ -132,7 +132,13 @@ def load_ccf_volume(path: str | Path, structure_tree: StructureTree | None = Non
     if suf == ".npy":
         return np.load(path, mmap_mode="r")
     if suf == ".nrrd":
-        import nrrd
+        try:
+            import nrrd
+        except ModuleNotFoundError as exc:  # optional extra
+            raise ModuleNotFoundError(
+                'reading .nrrd volumes needs the `atlas` extra: '
+                'pip install "asovi-imager[atlas]"  (.npy volumes need nothing extra)'
+            ) from exc
 
         data, _hdr = nrrd.read(str(path))
         data = np.asarray(data)

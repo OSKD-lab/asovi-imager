@@ -10,8 +10,17 @@ from __future__ import annotations
 
 import math
 
-import numba as nb
 import numpy as np
+
+try:
+    import numba as nb
+except ModuleNotFoundError as exc:  # optional extra
+    raise ModuleNotFoundError(
+        'the Numba registrator needs the `benchmark` extra: '
+        'pip install "asovi-imager[benchmark]". It is a reference '
+        'implementation for tests/benchmark_dft_compare.py; the pipeline uses '
+        'asvimg.registration.DftRegistrator (torch), which is far faster.'
+    ) from exc
 
 from .numpy import DftRegistrationResult
 

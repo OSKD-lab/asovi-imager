@@ -199,17 +199,11 @@ dependencies = [
     { name = "dearpygui" },
     { name = "h5py" },
     { name = "hdf5plugin" },
-    { name = "ipykernel" },
-    { name = "jupyter" },
     { name = "matplotlib" },
     { name = "natsort" },
-    { name = "numba" },
     { name = "numpy" },
-    { name = "nwbinspector" },
     { name = "opencv-python" },
     { name = "pandas" },
-    { name = "pynrrd" },
-    { name = "pynwb" },
     { name = "pyyaml" },
     { name = "scikit-image" },
     { name = "scikit-learn" },
@@ -222,27 +216,53 @@ dependencies = [
     { name = "tqdm" },
 ]
 
+[package.optional-dependencies]
+all = [
+    { name = "ipykernel" },
+    { name = "jupyter" },
+    { name = "numba" },
+    { name = "nwbinspector" },
+    { name = "pynrrd" },
+    { name = "pynwb" },
+]
+atlas = [
+    { name = "pynrrd" },
+]
+benchmark = [
+    { name = "numba" },
+]
+notebook = [
+    { name = "ipykernel" },
+    { name = "jupyter" },
+]
+nwb = [
+    { name = "nwbinspector" },
+    { name = "pynwb" },
+]
+
 [package.dev-dependencies]
 dev = [
+    { name = "asovi-imager", extra = ["all"] },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "asovi-imager", extras = ["nwb", "atlas", "notebook", "benchmark"], marker = "extra == 'all'" },
     { name = "dearpygui", specifier = ">=2.2" },
     { name = "h5py", specifier = ">=3.16.0" },
     { name = "hdf5plugin", specifier = ">=5.0.0" },
-    { name = "ipykernel", specifier = ">=7.2.0" },
-    { name = "jupyter", specifier = ">=1.1.1" },
+    { name = "ipykernel", marker = "extra == 'notebook'", specifier = ">=7.2.0" },
+    { name = "jupyter", marker = "extra == 'notebook'", specifier = ">=1.1.1" },
     { name = "matplotlib", specifier = ">=3.10.8" },
     { name = "natsort", specifier = ">=8.4.0" },
-    { name = "numba", specifier = ">=0.64.0" },
+    { name = "numba", marker = "extra == 'benchmark'", specifier = ">=0.64.0" },
     { name = "numpy", specifier = ">=2.4.3" },
-    { name = "nwbinspector", specifier = ">=0.6" },
+    { name = "nwbinspector", marker = "extra == 'nwb'", specifier = ">=0.6" },
     { name = "opencv-python", specifier = ">=4.13.0.92" },
     { name = "pandas", specifier = ">=3.0.1" },
-    { name = "pynrrd", specifier = ">=1.1" },
-    { name = "pynwb", specifier = ">=4.0" },
+    { name = "pynrrd", marker = "extra == 'atlas'", specifier = ">=1.1" },
+    { name = "pynwb", marker = "extra == 'nwb'", specifier = ">=4.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scikit-image", specifier = ">=0.26.0" },
     { name = "scikit-learn", specifier = ">=1.8.0" },
@@ -253,9 +273,13 @@ requires-dist = [
     { name = "torch", specifier = ">=2.6.0", index = "https://download.pytorch.org/whl/cpu" },
     { name = "tqdm", specifier = ">=4.67.3" },
 ]
+provides-extras = ["nwb", "atlas", "notebook", "benchmark", "all"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.2" }]
+dev = [
+    { name = "asovi-imager", extras = ["all"] },
+    { name = "pytest", specifier = ">=9.0.2" },
+]
 
 [[package]]
 name = "asttokens"
