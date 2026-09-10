@@ -4,6 +4,11 @@ version = "0.1.0"
 description = "Wide-field cortical imaging (WFCI) analysis pipeline: registration, linear subtraction (dF/F), PCA/ICA denoising, Allen CCFv3 atlas registration, and ROI signal extraction"
 readme = "README.md"
 requires-python = ">=3.13"
+license = "MIT"
+# Both, not just LICENSE: the DFT registration is a close port of BSD-licensed
+# MATLAB, and BSD asks that a binary distribution reproduce the notice in the
+# material shipped with it.  These land in `<dist-info>/licenses/`.
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 dependencies = [
     "dearpygui>=2.2",
     "h5py>=3.16.0",

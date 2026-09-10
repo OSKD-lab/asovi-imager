@@ -30,10 +30,39 @@ Its header reads:
 image registration by cross-correlation*:
 <https://www.mathworks.com/matlabcentral/fileexchange/18401-efficient-subpixel-image-registration-by-cross-correlation>
 
-**License** — BSD, per the File Exchange submission (the submission's release
-notes record "added BSD license" in version 1.1.0.0, 16 June 2016). The full text
-ships with the File Exchange download, not in the `.m` file header, and is
-**not yet reproduced here** — see *Outstanding* below.
+**License** — BSD 3-Clause, added to the submission in version 1.1.0.0
+(16 June 2016). It is not in the `.m` file header: it ships as `license.txt` in
+the File Exchange download, and is reproduced verbatim:
+
+```text
+Copyright (c) 2016, Manuel Guizar Sicairos, James R. Fienup, University of Rochester
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the distribution
+    * Neither the name of the University of Rochester nor the names
+      of its contributors may be used to endorse or promote products derived
+      from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+```
 
 **Citation for the algorithm** — Manuel Guizar-Sicairos, Samuel T. Thurman, and
 James R. Fienup, "Efficient subpixel image registration algorithms," *Optics
@@ -60,10 +89,10 @@ reads:
 
 ## `src/asvimg/data/wfciAnnotationData.mat`
 
-**Origin** — added to this repository in commit `e21170e` (2024-10-04) as the lab's
-own top-view cortical parcellation. It is not vendored third-party source, and the
-MIT `LICENSE` covers it; it is listed here because it is *derived from* the Allen
-Mouse Brain Common Coordinate Framework and now ships inside the wheel.
+**Origin** — the lab's own top-view cortical parcellation, made in 2024. It is not
+vendored third-party source, and the MIT `LICENSE` covers it; it is listed here
+because it is *derived from* the Allen Mouse Brain Common Coordinate Framework and
+now ships inside the wheel.
 
 **Underlying data** — Allen Mouse Brain Common Coordinate Framework (CCFv3):
 Wang Q, et al. *The Allen Mouse Brain Common Coordinate Framework: A 3D Reference
@@ -75,21 +104,3 @@ Institute Terms of Use.
 mapping; the `_R` / `_L` suffixes are fictional because the ID map is bilateral).
 `ACCFv3.get_mask()` and `ACCFv3.region_names` raise rather than answer from them.
 Geometry, boundaries, midline landmarks and point ROIs are correct.
-
----
-
-## Outstanding
-
-One thing is unresolved and should be settled before anyone relies on this file as
-a complete record:
-
-**The BSD text for File Exchange 18401 is not reproduced here.** A close port is a
-derivative work, so the licence travels with it, and BSD asks that redistributions
-retain the copyright notice, the conditions and the disclaimer — linking upstream
-is not a substitute for carrying the text. The text ships with the File Exchange
-download and could not be verified from any copy available when this file was
-written, so it was left out rather than reconstructed from memory.
-
-The Whitney baseline is an independent implementation of a published method rather
-than a copy, so attribution above is the obligation; its original carries no stated
-licence, which is why nothing of it is redistributed here.
