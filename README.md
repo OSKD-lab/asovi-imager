@@ -11,6 +11,26 @@ Wide-field cortical imaging (WFCI) analyzer — Python pipeline for registration
 > follows suite2p. See [Inspiration & references](#inspiration--references) for
 > the full list of algorithms, papers, and repositories this project builds on.
 
+## Features
+
+A recording goes in, per-region signals and correlations come out. Seven stages —
+`preprocess → pca → ica → annotation → roi → correlation → export` — each runnable
+on its own, from a GUI or headless.
+
+| | |
+| --- | --- |
+| **Reads your camera's files** | `.tif` / `.tiff` (incl. OME-TIFF), `.dcimg` (Hamamatsu), `.sifx` (Andor spools), `.nd2` (Nikon), and even/odd `.h5` folders. Multi-file recordings concatenate in a read order you choose |
+| **Sorts out the channel cycle** | Frames are assigned to channels by position, which a single dropped frame silently breaks. Preprocess checks this against an intensity fingerprint and flags phase slips; **Quick Preview** shows what it is about to do, and a standalone editor fixes a slip that starts mid-recording |
+| **Registration** | Subpixel DFT registration (Guizar-Sicairos), batched through torch FFTs on CPU. Measured on 540×640 frames: **~3 ms/frame** at the default `usfac=50`; at `usfac=500` it is ~12 against the plain NumPy implementation's ~214 |
+| **dF/F** | Per-pixel linear subtraction against a reference channel to remove the haemodynamic component, with an R² map to show how much it explained. No reference channel? A percentile baseline, so every group still has a signal |
+| **PCA / ICA** | Per channel group. Click the components that look like vessels, breathing or a light leak; the choice is recorded and replayed. Subtracting them is **off by default** — out of the box it is a record, not a change to your data |
+| **Allen atlas registration** | Pick control points on your own brain against the CCFv3 top view (a cpselect-style UI), on the mean image or on a PCA/ICA map. Done once, replayed forever |
+| **ROI signals without warping the movie** | Warp and ROI averaging are both linear, so the ROI masks are pulled back into your recording's own frame and the signals come out of one GEMM. Atlas point ROIs by default, your own via the ROI editor, or ROIs in source coordinates with no atlas at all |
+| **Correlation** | Region-by-region: plain, global-signal-regressed, or partial (Ledoit-Wolf). Plus seed-based maps against the whole cortex |
+| **Export** | Atlas-warped dF/F, per-channel TIFF stacks, movies, ROI CSVs — and **NWB**, ready for DANDI, from a separate metadata GUI |
+| **Reproducible** | The two things only a human can decide — the control points and the excluded components — are written to disk the moment you decide them, so the next run reproduces the result with no window open, on a machine with no display |
+| **Memory-bounded** | Read → process → write in chunks throughout. The atlas-warped export streams to an on-disk memmap: peak RAM is O(chunk), not O(recording) |
+
 ## Documentation
 
 Different readers, different docs. This README is the reference for **what the knobs do and
