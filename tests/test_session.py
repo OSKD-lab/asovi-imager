@@ -1023,6 +1023,38 @@ class TestPreprocessHooks(unittest.TestCase):
                 any("Creating template" in l.text for l in rep.logs)
             )
 
+    def test_cached_run_still_writes_registered_tiffs(self) -> None:
+        """The registered TIFFs are written from reg_Ch*.npy -- which is exactly
+        what a cached run reuses -- so ticking save_registered_each_ch must not
+        need a re-registration. Raw TIFFs still do (the frames are only seen
+        while the input is read), and say so."""
+        import tifffile
+
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            inp, out = tmp / "input", tmp / "out"
+            inp.mkdir()
+            out.mkdir()
+            self._write_tiff(inp)
+            cfg = self._make_config(inp, out)
+            cfg.registration_cache = "cached"
+            PreprocessRunner(cfg).run()
+            self.assertFalse((out / "tiffs").exists())
+
+            cfg.save_registered_each_ch = True
+            cfg.save_raw_each_ch = True
+            rep = RecordingReporter()
+            s2 = PreprocessRunner(cfg).run(reporter=rep)
+            self.assertTrue(s2.cached)
+            tifs = sorted((out / "tiffs").glob("reg_*/*.tif"))
+            self.assertEqual(len(tifs), 2)  # one per channel of the cycle
+            for ch, path in enumerate(tifs):
+                np.testing.assert_array_equal(
+                    tifffile.imread(path), np.asarray(load_reg_channel(out, ch))
+                )
+            self.assertFalse(list((out / "tiffs").glob("raw_*")))
+            self.assertTrue(any("save_raw_each_ch is IGNORED" in l.text for l in rep.logs))
+
     def test_cancellation_stops_partway(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)

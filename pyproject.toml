@@ -39,12 +39,13 @@ nwb = [
     "nwbinspector>=0.6",  # NWB export validation (nwbinspector --config dandi)
 ]
 atlas = ["pynrrd>=1.1"]  # read Allen CCF .nrrd volumes in the atlas builder
+nd2 = ["nd2>=0.10"]  # read Nikon .nd2 recordings (asvimg.nd2rec)
 notebook = ["jupyter>=1.1.1", "ipykernel>=7.2.0"]  # nothing imports these; they run the notebooks
 # The Numba registrator is a benchmark reference only: ~175 ms/frame against the
 # production torch DftRegistrator's ~12 at the same settings, and nothing but
 # tests/benchmark_dft_compare.py imports it.
 benchmark = ["numba>=0.64.0"]
-all = ["asovi-imager[nwb,atlas,notebook,benchmark]"]
+all = ["asovi-imager[nwb,atlas,nd2,notebook,benchmark]"]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cpu" }

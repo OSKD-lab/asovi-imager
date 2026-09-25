@@ -13,12 +13,12 @@ Wide-field cortical imaging (WFCI) analyzer — Python pipeline for registration
 
 ## Documentation
 
-Three readers, three docs. This README is the reference for **what the knobs do and
+Different readers, different docs. This README is the reference for **what the knobs do and
 what comes out**; everything else hangs off it.
 
 | If you are… | Read |
 | --- | --- |
-| a scientist who just wants to run it | [**はじめかた (日本語ユーザーガイド)**](docs/getting_started_jp.md) — install, GUI, stage by stage, troubleshooting |
+| a scientist who just wants to run it | [**Getting started**](docs/getting_started.md) — install, GUI, stage by stage, troubleshooting. Also in Japanese: [**はじめかた**](docs/getting_started_jp.md) |
 | setting up / configuring a run | this README — [entry points](#entry-points), [configuration](#configuration), [output layout](#output-file-layout) |
 | about to change the code, or asking **"why is it like this?"** | the module docstrings, which carry the measured numbers and the traps — and `git log` for anything committed here. See [Reading the history](#reading-the-history) for what this repository's history does and does not contain |
 
@@ -54,7 +54,7 @@ git blame src/asvimg/annotation.py     # then `git show <sha>` on the line you d
 pip install git+https://github.com/OSKD-lab/asovi-imager
 ```
 
-That is the whole pipeline — preprocess through export, the GUI included. Three
+That is the whole pipeline — preprocess through export, the GUI included. A few
 features have dependencies heavy enough not to install for everyone; each is
 imported only where it is used, and asking for it without the extra tells you
 which one to add:
@@ -63,6 +63,7 @@ which one to add:
 | --- | --- | --- |
 | `[nwb]` | pynwb, nwbinspector | `asovi-nwb` — packaging a processed folder as NWB |
 | `[atlas]` | pynrrd | `asovi-atlas` reading CCF volumes as `.nrrd` (`.npy` needs nothing) |
+| `[nd2]` | nd2 | reading Nikon `.nd2` recordings |
 | `[notebook]` | jupyter, ipykernel | running `notebooks/` |
 | `[benchmark]` | numba | the Numba registrator, which only `tests/benchmark_dft_compare.py` uses |
 | `[all]` | all of the above | |
@@ -115,10 +116,10 @@ The dashboard (`src/asvimg/gui/`) drives the headless `PipelineSession`:
 
 - **Config pane** — every `db`/`ops` field, grouped into collapsing sections (`*` marks reproducibility/db fields). `...` opens the OS-native file dialog to locate an `ops.yaml`; **Load** reads a config (and marks stages already done on disk); **Save** writes `db.yaml`/`ops.yaml`.
 - **Presets** — the dropdown applies **ops-only** YAML (`db` fields are never touched, so the input/output stay put): `(factory defaults)` resets every processing field to `PipelineConfig()`; `[std] …` are the read-only ones bundled in [`src/asvimg/presets/`](src/asvimg/presets); anything else is yours, saved by **Save as preset** into `~/.asovi/presets/`. **Read last config** restores the previous session's processing fields from `~/.asovi/last_ops.yaml` (auto-written on exit). A preset is an **overlay**: a key it does not carry keeps its current value rather than reverting to the default — load `(factory defaults)` first if you want a clean slate.
-- **Stages** — `preprocess → pca → ica → annotation → roi → correlation → export`, each runnable on its own (they rehydrate what they need from disk) or all at once via **Run All**. Status reads `[ ] / [In Progress] / [Done] / [Error]` (errors in red). **Quick Preview** shows the first 12 frames of the *first* input file, labelled by the channel preprocess will assign them; **Quick Preview (All)** shows the first frames of *every* input file, one row per file — the view that exposes a per-file phase slip (fix it with `channels_slip`). Both log the input files with their sizes in read order.
+- **Stages** — `preprocess → pca → ica → annotation → roi → correlation → export`, each runnable on its own (they rehydrate what they need from disk) or all at once via **Run All**. The **State** column reads `Pending` / `Running` / `Done` / `Skipped` / `Error` (red), plus `Done (* param-changed)` when a setting that feeds that stage changed after it ran — the result on disk no longer matches the config. **Last run** is when it last finished. **Quick Preview** shows the first 12 frames of the *first* input file, labelled by the channel preprocess will assign them; **Quick Preview (All)** shows the first frames of *every* input file, one row per file — the view that exposes a per-file phase slip (fix it with `channels_slip`). Both log the input files with their sizes in read order.
 - **The two interactive stages** — `ica` opens the IC picker (one window per channel group; tick the maps that look like vessels, breathing, or a light leak) and `annotation` opens cpselect. Each choice is written to disk (`ica_exclusion.json`, `marks.mat`) as soon as it is made, so the next run replays it instead of asking again — see *Reproducibility* below.
 - **Figures** — each emitted plot is a collapsible panel; set `save_figures` to also write them to `<output>/figures/`.
-- **Outputs pane** — three tools that run outside the stage sequence:
+- **Utilities** (the row under the stage table) — three tools that run outside the stage sequence:
   - **Edit ROIs** — add / move / resize / mirror the atlas point ROIs, then **Save rois.csv**. Once `<output>/rois.csv` exists it **replaces the atlas defaults** for ROI extraction, correlation and the seed maps. It is a human decision, like `marks.mat` — keep it (see *Reproducibility*).
   - **Seed-based Corr. Maps** (needs annotation done) — a seed-ROI correlation map in atlas space → `<output>/corrMap/`. **Add for Annot.** inverse-warps the shown map back into source coordinates and drops it in `map_for_annot/`, so you can pick control points on it.
   - **Preview Movie** — play the warped dF/F movies without leaving the app.
@@ -200,6 +201,7 @@ splits each area at the midline and carries correct names — and point
 - `.tif` / `.tiff` — including OME-TIFF from µManager (`timelapse..._MM` filenames auto-populate `exp_name`)
 - `.dcimg` — Hamamatsu DCIMG (SDK runtime preferred, native parser fallback)
 - `.sifx` — Andor spool directories. Frames read is the smaller of two counts, which guard opposite failures of a run that stopped early: the header's `NumberOfFrames` excludes the zero padding a spool file keeps when it was written whole, and the count taken from the `*spool.dat` file sizes excludes frames a nominal `ImagesPerFile` would claim past the end of a short last file. Random access (`SIFXFile.frame`) still spans every frame on disk
+- `.nd2` — Nikon NIS-Elements (needs the `[nd2]` extra). Multi-channel acquisitions keep every channel inside one time step, so the `T x C` grid is flattened into one interleaved stream (`t0c0, t0c1, …, t1c0, …`): frame `t*C + c` is ND2 channel `c`. List the ND2 channels in their **stored order** in `channels_name`; its length must be a multiple of `C` or preprocess refuses to run (the log prints the ND2 channel names beside `channels_name`). `fps` is the rate of that stream, i.e. `C ×` the time-loop rate. Only `T`/`C`/`Y`/`X` files are read — a Z-stack, multi-point (`P`) or RGB file raises instead of folding its extra axis into time. Per-frame timestamps come from the ND2 frame metadata. To analyse without atlas registration, use `annotation: false` with `roi_space: "source"` (see below)
 - Ito even/odd HDF5 recording — point `--input-dir` at the folder of `*_even_*.h5` / `*_odd_*.h5` parts. The parts are merged back into one stream ordered by `source_index` (the original interleaved order), so even/odd land on their channels via the usual positional demux. Frames are read as stored (any binning was applied at acquisition; the pipeline's `binning` still applies on top). Compression is read via HDF5 filters — blosc2/zstd/lz4 (needs `hdf5plugin`, a dependency) or gzip (built in) all work; no codec is special-cased.
 
 A single `--input-dir` may contain a mix of the file-based formats (an HDF5 recording is instead a whole folder). If a folder holds **more than one** format, `input_format="auto"` refuses it — set `input_format` explicitly to pick one.
@@ -254,8 +256,8 @@ uv run python -c "import dataclasses as d; from asvimg import PipelineConfig as 
 
 | key | meaning |
 | --- | --- |
-| `input_dir` | Directory holding the `.tif` / `.tiff` / `.dcimg` / `.sifx` inputs (or an even/odd `.h5` recording folder). The packaged default points at a sample folder that is **not** in the repository — set this |
-| `input_format` | Which input format to read: `"auto"` (default — detect the one format present; **error** if the folder mixes formats) / `"tif"` (.tif/.tiff) / `"dcimg"` / `"sifx"` / `"h5"` (Ito even/odd folder). Set it explicitly to disambiguate a mixed folder |
+| `input_dir` | Directory holding the `.tif` / `.tiff` / `.dcimg` / `.sifx` / `.nd2` inputs (or an even/odd `.h5` recording folder). The packaged default points at a sample folder that is **not** in the repository — set this |
+| `input_format` | Which input format to read: `"auto"` (default — detect the one format present; **error** if the folder mixes formats) / `"tif"` (.tif/.tiff) / `"dcimg"` / `"sifx"` / `"nd2"` (Nikon) / `"h5"` (Ito even/odd folder). Set it explicitly to disambiguate a mixed folder |
 | `input_order` | Order the input files are read and concatenated in — see [Input read order](#input-read-order): `"natural"` (default) / `"name"` / `"mtime"` / `"ctime"` |
 | `output_dir` | Where everything is written (`null` → `<input_dir>/asi/<output_format>`) |
 | `exp_name` | Experiment name used in the output filenames (`null` → inferred from the first input filename; `timelapse..._MM` names auto-populate it). Note it does **not** rename `roiSignals_*` — see [Output file layout](#output-file-layout) |
@@ -287,7 +289,7 @@ Worked examples — the pair must describe the acquisition exactly:
 | key | meaning |
 | --- | --- |
 | `do_registration` | DFT motion correction |
-| `registration_cache` | `"force"` (always run) / `"cached"` (skip preprocess and reuse the existing `reg_Ch*.npy`). `"cached"` only accepts a **completed** run: the `reg_Ch` memmaps are preallocated at the start, so the test is `reg_meta.npz` (written last, and marked `partial` when the run was cancelled) — a cancelled or crashed run is re-registered instead of being analysed as a prefix. A cached run skips the rest of preprocess too: `save_raw_each_ch` / `save_registered_each_ch` are ignored (per-frame TIFFs are only written while registration runs), and a changed dF/F knob has no effect until you go back to `"force"` |
+| `registration_cache` | `"force"` (always run) / `"cached"` (skip preprocess and reuse the existing `reg_Ch*.npy`). `"cached"` only accepts a **completed** run: the `reg_Ch` memmaps are preallocated at the start, so the test is `reg_meta.npz` (written last, and marked `partial` when the run was cancelled) — a cancelled or crashed run is re-registered instead of being analysed as a prefix. A cached run skips the rest of preprocess too: `save_raw_each_ch` is ignored (raw frames are only captured while the input is read) — `save_registered_each_ch` still works, since those TIFFs are written from the cached `reg_Ch*.npy` — and a changed dF/F knob has no effect until you go back to `"force"` |
 | `registration_batch_size` | Frames per registration batch (read → register → bin → write); bounds the registration working set. suite2p-style batching |
 | `usfac` | DFT registration upsampling factor — subpixel precision `1/usfac` px (must be ≥ 1) |
 | `template` | Path to an existing registration template (`.mat` / `.npy` / `.tif` / `.png` …; a relative path resolves against `input_dir`). It must have the **raw** (pre-binning) frame shape, and it is mirrored with the frames when `flip` is on. `null` → auto-build one and cache it as `<output_dir>/templateImage.mat` |
@@ -327,7 +329,7 @@ Worked examples — the pair must describe the acquisition exactly:
 | `ica_exclusion` | Which ICs are artifacts: `"cache"` (default — replay the choice recorded in `ica_exclusion.json`) / `"gui"` (pick them; one window per channel group) / `{"GCaMP": [2, 7]}` (0-based, inline) / `false` (none). Mirrors `annotation`: an interactive choice is written to `ica_exclusion.json`, so a headless re-run reproduces it with no window |
 | `ica_denoise` | `"off"` (default) — the IC exclusion is **QC only**; every saved artifact comes from the plain dF/F (MATLAB / notebook parity). `"subtract"` — ROI signals, `dfWarped`, movies and correlation are computed from dF/F **minus the excluded components** (`ica/dff_{name}.npy`). Excluding nothing is the exact identity, so turning it on cannot by itself change a value. Every `roiSignals_*` and `*_dfWarped_*` payload carries `ica_denoised` / `ica_denoise_mode` / `ica_excluded_ic` regardless of the setting; `ica_excluded_ic` is **1-based** (matching `IC{i}.png`, the picker and `ica_exclusion.json`), unlike the inline `ica_exclusion` dict above, which is 0-based |
 | `roi_signal` | `"Both"` / `"Raw"` / `"dff"` — which signal(s) to extract per ROI. `F_raw` never passes through the denoising: it is read straight from the registered channels |
-| `roi_space` | `"atlas"` (default) — ROIs are Allen-atlas coordinates (the atlas defaults, or an edited `rois.csv`), pulled back into the recording by the annotation transform, so the ROI stage needs annotation done. `"source"` — ROIs are already in the recording's own (binned reg/dff) coordinates, read directly with **no atlas registration**: ROI signals and correlation then run even with `annotation: false`. Source ROIs come from `rois_source.csv` (there are no built-in defaults for a raw recording — an empty/absent file means the ROI stage extracts nothing) |
+| `roi_space` | `"atlas"` (default) — ROIs are Allen-atlas coordinates (the atlas defaults, or an edited `rois.csv`), pulled back into the recording by the annotation transform, so the ROI stage needs annotation done. `"source"` — ROIs are already in the recording's own (binned reg/dff) coordinates, read directly with **no atlas registration**: `run_roi` / `run_correlation` then work even with `annotation: false`. **`run_all` still skips them**, because it gates ROI/correlation/export on a non-`None` transform regardless of `roi_space` — call the stages individually (or press their **Run** buttons) for a source-space run. Source ROIs come from `rois_source.csv` (there are no built-in defaults for a raw recording — an empty/absent file means the ROI stage extracts nothing) |
 | `corr_method` | ROI correlation: `"raw"` (Pearson) / `"gsr"` (global-signal regressed) / `"partial"` (shrinkage precision — note it is computed in the ROIs' raw units, so it is not scale-invariant). All three use the `start_initial_frames` / `ignore_last_frames` window, the same one the ROI plots show |
 | `corr_auto_threshold`, `corr_edge_density`, `corr_network_threshold` | Network edges: auto (keep top `edge_density` fraction) vs a fixed `|r|` cutoff |
 | `save_movie_speed`, `save_movie_codec`, `save_movie_vminmax`, `save_movie_cmap`, `save_movie_merge_chs` | Warped dF/F movie display: realtime ×N (output fps = per-channel fps × speed); codec `"MJPG"` (.avi) / `"DIB (RAW)"` (uncompressed .avi) / `"mp4V"` (.mp4) — a raw 4-char FourCC is also accepted; `(vmin, vmax)` in dF/F %; the LUT `"magma"` (default) / `"turbo"` / `"gray"` / `"viridis"`; and `save_movie_merge_chs` — when >1 source group, concatenate their movies horizontally into a single `{exp}_merged_dF` (off = one per group) |
@@ -351,8 +353,8 @@ In the GUI these are all under the **Outputs** pane (Frames / Movie / ROI / Figu
 | key | meaning |
 | --- | --- |
 | `output_format` | `mat` / `npy` / `h5` |
-| `save_raw_each_ch` | Save per-channel pre-registration TIFF stacks (input dtype) |
-| `save_registered_each_ch` | Save per-channel registered + binned TIFFs (uint16) |
+| `save_raw_each_ch` | Save per-channel pre-registration TIFF stacks (input dtype) to `<output_dir>/tiffs/raw_<ch>/`. Written by **preprocess** (not export), and only with `registration_cache: "force"` |
+| `save_registered_each_ch` | Save per-channel registered + binned TIFFs (uint16) to `<output_dir>/tiffs/reg_<ch>/`. Written by **preprocess** (not export), also on a `"cached"` run. In the GUI these two, `tiff_format` and `tiff_compression` appear under both Preprocess and Outputs — one setting, kept in sync — and ticking them re-flags preprocess only |
 | `save_annotated_each_ch` | Save per-channel atlas-warped TIFFs (uint16) |
 | `save_annotated_dF_mat` | Save atlas-warped dF/F per group as `{exp}_dfWarped_{name}_01` (mat/npy/h5). The warped payload is **float32** (`single` in MATLAB) — the sources it comes from are uint16 / float32, so float64 only doubled the file |
 | `save_annotated_dF_dtype` | dtype of that dfWarped payload: `"float32"` (default) / `"float16"`. float16 halves the npy/h5 file size; `.mat` cannot hold float16 (scipy upcasts it to float64), so a mat export stays float32 and logs a warning |

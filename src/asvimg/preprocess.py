@@ -142,13 +142,22 @@ class PreprocessRunner:
                     f"[preprocess] cached: reusing {len(existing)} existing "
                     f"reg_Ch*.npy file(s); registration skipped."
                 )
-                if self.config.save_raw_each_ch or self.config.save_registered_each_ch:
+                if self.config.save_raw_each_ch:
                     self._log(
-                        "[preprocess] WARNING: save_raw_each_ch / "
-                        "save_registered_each_ch are IGNORED on a cached run: "
-                        "per-frame TIFFs are only written while registration "
-                        "runs. Set registration_cache='force' to (re)generate them."
+                        "[preprocess] WARNING: save_raw_each_ch is IGNORED on a "
+                        "cached run: raw frames are only captured while the input "
+                        "is read. Set registration_cache='force' to write them."
                     )
+                if self.config.save_registered_each_ch:
+                    # the registered TIFFs are written from reg_Ch*.npy, which
+                    # the cache is: nothing needs re-registering for them
+                    n = self.config.cycle_len
+                    t_per_ch = [
+                        load_reg_channel(self.output_dir, ch, mmap=True).shape[0]
+                        if reg_channel_path(self.output_dir, ch).exists() else 0
+                        for ch in range(n)
+                    ]
+                    self._save_channel_tiffs(exp_name, t_per_ch, None, [0] * n)
                 stats.batches_saved = len(existing)
                 stats.cached = True
                 stats.total_seconds = time.perf_counter() - run_t0
@@ -195,6 +204,26 @@ class PreprocessRunner:
             f"{'linear-subtract' if self.config.linear_subt else 'no-subtract'} "
             f"-> reg_Ch*.npy ({'mmap' if self.config.use_mmap else 'in-RAM'} dF/F)"
         )
+
+        # An .nd2 is flattened to t0c0, t0c1, … (see nd2rec), so the cycle must
+        # step through its C channels in whole turns, or channels would mix.
+        for f in input_files:
+            if f.suffix.lower() == ".nd2":
+                from .nd2rec import Nd2Recording
+
+                with Nd2Recording(f) as rec:
+                    n_ch, nd2_names = rec.n_channels, rec.channel_names
+                if cycle_len % n_ch != 0:
+                    raise ValueError(
+                        f"'{f.name}' has {n_ch} ND2 channels {nd2_names}, but "
+                        f"channels_name has {cycle_len} entries; the cycle "
+                        f"length must be a multiple of {n_ch} (list the ND2 "
+                        f"channels in their stored order)."
+                    )
+                self._log(
+                    f"[preprocess] ND2 '{f.name}': channels {nd2_names} -> "
+                    f"channels_name {list(self.config.channels_name[:n_ch])}"
+                )
 
         # Channel-cycle alignment across file boundaries: channel index continues
         # (global_frame_index % cycle_len) across files, so a NON-LAST file whose

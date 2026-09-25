@@ -12,12 +12,13 @@ import tifffile
 from scipy.io import loadmat, savemat
 
 from .dcimg import get_dcimg_file_class
+from .nd2rec import Nd2Recording
 from .sifx import SIFXFile
 
 SUPPORTED_OUTPUT_FORMATS = {"mat", "npy", "h5"}
 # Single-file stack extensions. An Ito even/odd HDF5 recording is instead a
 # *folder* of .h5 parts (see h5rec.H5Recording), dispatched on ``path.is_dir()``.
-SUPPORTED_INPUT_EXTENSIONS = (".tif", ".tiff", ".dcimg", ".sifx", ".h5")
+SUPPORTED_INPUT_EXTENSIONS = (".tif", ".tiff", ".dcimg", ".sifx", ".nd2", ".h5")
 
 # Read orders find_input_files can impose on a multi-file recording. The order
 # is the concatenation order of the whole timeline, so it decides where every
@@ -69,7 +70,7 @@ def _detect_input_formats(
 ) -> dict[str, list[Path]]:
     """Map each input format present in ``input_dir`` to its files.
 
-    Keys are ``"tif"`` (.tif/.tiff), ``"dcimg"``, ``"sifx"``, ``"h5"`` (an Ito
+    Keys are ``"tif"`` (.tif/.tiff), ``"dcimg"``, ``"sifx"``, ``"nd2"``, ``"h5"`` (an Ito
     even/odd recording, represented by the folder itself). Files within a format
     are sorted by ``input_order`` (default natural order: ``file_2`` before
     ``file_10``).
@@ -78,7 +79,7 @@ def _detect_input_formats(
     tif = [*input_dir.glob("*.tif"), *input_dir.glob("*.tiff")]
     if tif:
         present["tif"] = _order_files(tif, input_order)
-    for fmt, pattern in (("dcimg", "*.dcimg"), ("sifx", "*.sifx")):
+    for fmt, pattern in (("dcimg", "*.dcimg"), ("sifx", "*.sifx"), ("nd2", "*.nd2")):
         hit = _order_files(list(input_dir.glob(pattern)), input_order)
         if hit:
             present[fmt] = hit
@@ -99,7 +100,7 @@ def find_input_files(
 
     ``input_format`` selects the format to read: ``"auto"`` detects the single
     format present and **raises when a folder mixes formats** (so the pipeline
-    never silently reads one of several); ``"tif"``/``"dcimg"``/``"sifx"``/``"h5"``
+    never silently reads one of several); ``"tif"``/``"dcimg"``/``"sifx"``/``"nd2"``/``"h5"``
     force that one.
 
     ``input_order`` is the order multi-file recordings of one format are
@@ -124,7 +125,7 @@ def find_input_files(
     if not present:
         raise FileNotFoundError(
             f"No supported files found in {input_dir} "
-            f"(expected .tif/.tiff/.dcimg/.sifx or an even/odd .h5 recording folder)"
+            f"(expected .tif/.tiff/.dcimg/.sifx/.nd2 or an even/odd .h5 recording folder)"
         )
     if len(present) > 1:
         raise ValueError(
@@ -196,6 +197,10 @@ def get_frame_count(path: Path) -> int:
         with SIFXFile(path) as sifx:
             return sifx.effective_nfrms
 
+    if suffix == ".nd2":
+        with Nd2Recording(path) as rec:
+            return rec.nfrms
+
     raise ValueError(f"Unsupported input extension: {path.suffix}")
 
 
@@ -227,6 +232,11 @@ def iter_frames(path: Path) -> Iterator[np.ndarray]:
         with SIFXFile(path) as sifx:
             for idx in range(sifx.effective_nfrms):
                 yield sifx.frame(idx, copy=False)
+        return
+
+    if suffix == ".nd2":
+        with Nd2Recording(path) as rec:
+            yield from rec.iter_frames()
         return
 
     raise ValueError(f"Unsupported input extension: {path.suffix}")
@@ -292,6 +302,12 @@ def iter_frames_with_metadata(
                 yield np.asarray(frame), meta
         return
 
+    if suffix == ".nd2":
+        with Nd2Recording(path) as rec:
+            for idx in range(rec.nfrms):
+                yield rec.frame_with_metadata(idx)
+        return
+
     raise ValueError(f"Unsupported input extension: {path.suffix}")
 
 
@@ -323,6 +339,10 @@ def load_frames_by_indices(path: Path, indices: list[int]) -> list[np.ndarray]:
             return [
                 sifx.frame(int(idx), copy=True).astype(np.float64) for idx in indices
             ]
+
+    if suffix == ".nd2":
+        with Nd2Recording(path) as rec:
+            return [rec.frame(int(idx)).astype(np.float64) for idx in indices]
 
     raise ValueError(f"Unsupported input extension: {path.suffix}")
 
@@ -418,6 +438,19 @@ def load_input_metadata(
             if frame_indices:
                 for idx in frame_indices:
                     out["frames"].append(sifx.frame_metadata(int(idx)))
+            return out
+
+    if suffix == ".nd2":
+        with Nd2Recording(path) as rec:
+            out = {
+                "path": str(path),
+                "absolute_path": str(path.resolve()),
+                "summary": rec.metadata_summary(),
+                "frames": [],
+            }
+            if frame_indices:
+                for idx in frame_indices:
+                    out["frames"].append(rec.frame_metadata(int(idx)))
             return out
 
     raise ValueError(f"Unsupported input extension: {path.suffix}")

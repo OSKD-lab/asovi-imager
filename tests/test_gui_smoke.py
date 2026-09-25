@@ -164,6 +164,45 @@ class TestConfigForm(unittest.TestCase):
         finally:
             dpg.destroy_context()
 
+    def test_mirrored_fields_stay_in_sync(self) -> None:
+        """The per-channel TIFF flags are shown under Preprocess AND Outputs;
+        both widgets are one setting: an edit to either shows in the other,
+        and load() fills both."""
+        import dearpygui.dearpygui as dpg
+
+        from asvimg import PipelineConfig
+        from asvimg.gui.config_form import ConfigForm, _mirror_tag, _tag
+        from asvimg.gui.field_specs import MIRRORS
+
+        dpg.create_context()
+        try:
+            with dpg.window(tag="w"):
+                form = ConfigForm(PipelineConfig())
+                form.build(parent="w")
+            for name, section, _group in MIRRORS:
+                self.assertTrue(dpg.does_item_exist(_mirror_tag(name, section)), name)
+
+            prim = _tag("save_registered_each_ch")
+            copy = _mirror_tag("save_registered_each_ch", "Preprocess")
+            for t in (prim, copy):  # a click on either one runs the sync
+                self.assertEqual(dpg.get_item_callback(t), form._cb_sync_copies)
+            # dpg fires the widget callback on a user click; call it the same way
+            dpg.set_value(copy, True)
+            form._cb_sync_copies(copy, True, "save_registered_each_ch")
+            self.assertTrue(dpg.get_value(prim))
+            self.assertTrue(form.collect()["save_registered_each_ch"])
+
+            dpg.set_value(prim, False)
+            form._cb_sync_copies(prim, False, "save_registered_each_ch")
+            self.assertFalse(dpg.get_value(copy))
+
+            form.load(PipelineConfig(tiff_format="ome-tiff", save_raw_each_ch=True))
+            self.assertEqual(dpg.get_value(_mirror_tag("tiff_format", "Preprocess")), "ome-tiff")
+            self.assertTrue(dpg.get_value(_mirror_tag("save_raw_each_ch", "Preprocess")))
+            self.assertEqual(form.collect()["tiff_format"], "ome-tiff")
+        finally:
+            dpg.destroy_context()
+
     def test_inline_annotation_coords_preserved(self) -> None:
         # Loading a coordinate-pair annotation and reading it back must NOT
         # downgrade it to the literal "cache".
@@ -489,6 +528,42 @@ class TestConfigForm(unittest.TestCase):
                 self.assertTrue(dpg.does_item_exist(tag), tag)
             app._handle(("log", "pca", "hello", "info"))
             self.assertIn("hello", dpg.get_value("log_text"))
+        finally:
+            dpg.destroy_context()
+
+    def test_tiff_flags_restale_preprocess_only(self) -> None:
+        """save_*_each_ch are consumed by preprocess, so ticking one must flag
+        PREPROCESS (not export, which never reads them) -- and nothing
+        downstream, since they change no value a later stage reads."""
+        import dearpygui.dearpygui as dpg
+
+        from asvimg.gui.app import _STAGE_PARAMS, DashboardApp
+
+        for name in ("save_raw_each_ch", "save_registered_each_ch"):
+            self.assertIn(name, _STAGE_PARAMS["preprocess"])
+            self.assertNotIn(name, _STAGE_PARAMS["export"])
+
+        dpg.create_context()
+        try:
+            app = DashboardApp()
+            app._build_ui()
+            base = app.form.collect()
+            for name, value in (("save_registered_each_ch", True),
+                                ("save_raw_each_ch", True),
+                                ("tiff_compression", True)):
+                cfg = {**base, name: value}
+                self.assertNotEqual(app._stage_signature(cfg, "", "preprocess"),
+                                    app._stage_signature(base, "", "preprocess"), name)
+                for stage in ("pca", "ica", "annotation", "roi", "correlation"):
+                    self.assertEqual(app._stage_signature(cfg, "", stage),
+                                     app._stage_signature(base, "", stage), (name, stage))
+            # the annotated TIFFs are export's own, so its format still re-flags export
+            cfg = {**base, "tiff_format": "ome-tiff"}
+            self.assertNotEqual(app._stage_signature(cfg, "", "export"),
+                                app._stage_signature(base, "", "export"))
+            cfg = {**base, "save_registered_each_ch": True}
+            self.assertEqual(app._stage_signature(cfg, "", "export"),
+                             app._stage_signature(base, "", "export"))
         finally:
             dpg.destroy_context()
 

@@ -36,8 +36,8 @@ FIELD_SPECS: list[FieldSpec] = [
     # --- Data (db) ---
     FieldSpec("input_dir", "text_dir", "Data", tooltip="Input dir (tif/dcimg/sifx) — '...' opens a folder picker"),
     FieldSpec("output_dir", "text_dir", "Data", tooltip="Output dir (blank -> input_dir/asi/<format>) — '...' opens a folder picker"),
-    FieldSpec("input_format", "combo", "Data", choices=["auto", "tif", "dcimg", "sifx", "h5"],
-              tooltip="Which input format to read from input_dir. 'auto' detects the one format present and errors if the folder mixes formats; pick tif (.tif/.tiff) / dcimg / sifx / h5 (Ito even/odd folder) to force one and resolve a mix."),
+    FieldSpec("input_format", "combo", "Data", choices=["auto", "tif", "dcimg", "sifx", "nd2", "h5"],
+              tooltip="Which input format to read from input_dir. 'auto' detects the one format present and errors if the folder mixes formats; pick tif (.tif/.tiff) / dcimg / sifx / nd2 (Nikon T x C) / h5 (Ito even/odd folder) to force one and resolve a mix."),
     FieldSpec("input_order", "combo", "Data", choices=["natural", "name", "mtime", "ctime"],
               tooltip="Order the input files are read and concatenated in (one continuous timeline). "
                       "natural = natsort by name (rec_2 before rec_10; default, matches spooled-file naming and what Windows Explorer shows). "
@@ -136,8 +136,8 @@ FIELD_SPECS: list[FieldSpec] = [
 
     # --- Outputs — every "save file" flag, grouped by category ---
     # Frames (registered / warped stacks as TIFF or payload)
-    FieldSpec("save_raw_each_ch", "bool", "Outputs", group="Frames", tooltip="Save raw (pre-processing) channels as TIFF"),
-    FieldSpec("save_registered_each_ch", "bool", "Outputs", group="Frames", tooltip="Save registered+binned channels as TIFF"),
+    FieldSpec("save_raw_each_ch", "bool", "Outputs", group="Frames", tooltip="Save raw (pre-processing) channels as TIFF. Written by PREPROCESS, and only while it reads the input: needs registration_cache='force'. Also shown under Preprocess (same setting)."),
+    FieldSpec("save_registered_each_ch", "bool", "Outputs", group="Frames", tooltip="Save registered+binned channels as TIFF. Written by PREPROCESS (also from a cached run's reg_Ch*.npy). Also shown under Preprocess (same setting)."),
     FieldSpec("save_annotated_each_ch", "bool", "Outputs", group="Frames", tooltip="Save atlas-warped channels as TIFF"),
     FieldSpec("save_annotated_dF_mat", "bool", "Outputs", group="Frames", tooltip="Save atlas-warped dF/F per group (mat/npy/h5)"),
     FieldSpec("save_annotated_dF_dtype", "combo", "Outputs", group="Frames", choices=["float32", "float16"],
@@ -173,6 +173,18 @@ for _s in (  # follows the pipeline stage order (pca/ica run before annotation)
 ):
     if _s not in SECTIONS:
         SECTIONS.append(_s)
+
+
+# Fields shown a second time in another section, as (field, section, group).
+# The copy is the SAME setting, not a second one: ConfigForm keeps every copy in
+# sync and collects from the primary widget. The per-channel TIFFs are written
+# by preprocess, but belong with the other "save" flags in Outputs too.
+MIRRORS: list[tuple[str, str, str]] = [
+    ("save_raw_each_ch", "Preprocess", "5. TIFF output"),
+    ("save_registered_each_ch", "Preprocess", "5. TIFF output"),
+    ("tiff_format", "Preprocess", "5. TIFF output"),
+    ("tiff_compression", "Preprocess", "5. TIFF output"),
+]
 
 
 def specs_by_section() -> dict[str, list[FieldSpec]]:

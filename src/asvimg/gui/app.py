@@ -135,6 +135,12 @@ _STAGE_PARAMS = {
         "start_initial_frames",
         "ignore_last_frames",
         "output_metadata_yaml",
+        # the per-channel TIFFs (see _STAGE_OUTPUT_PARAMS: they re-flag
+        # preprocess only, not everything downstream of it)
+        "save_raw_each_ch",
+        "save_registered_each_ch",
+        "tiff_format",
+        "tiff_compression",
     ],
     "pca": [
         "pca_n_components",
@@ -192,8 +198,6 @@ _STAGE_PARAMS = {
         "save_movie_merge_chs",
         "tiff_format",
         "tiff_compression",
-        "save_raw_each_ch",
-        "save_registered_each_ch",
         "post_annotation_time_average",
         "post_annotation_filter_xyt",
         "post_annotation_filter_kind",
@@ -201,6 +205,14 @@ _STAGE_PARAMS = {
         "ica_denoise",
         "__ica_sel__",
     ],
+}
+# Params that only decide which extra files a stage writes, never the values
+# the next stage reads: they make the stage itself stale but are left out of the
+# signature its downstream stages inherit, so ticking "save TIFF" re-flags
+# preprocess alone instead of every stage after it.
+_STAGE_OUTPUT_PARAMS = {
+    "preprocess": {"save_raw_each_ch", "save_registered_each_ch",
+                   "tiff_format", "tiff_compression"},
 }
 _STAGE_UPSTREAM = {
     "preprocess": [],
@@ -1060,10 +1072,14 @@ class DashboardApp:
         except Exception:  # noqa: BLE001
             return ""
 
-    def _stage_signature(self, cfg: dict, rois_key: str, stage: str):
+    def _stage_signature(self, cfg: dict, rois_key: str, stage: str,
+                         *, as_upstream: bool = False):
         denoising = str(cfg.get("ica_denoise", "off")) != "off"
+        output_only = _STAGE_OUTPUT_PARAMS.get(stage, set()) if as_upstream else set()
         parts = []
         for f in _STAGE_PARAMS.get(stage, []):
+            if f in output_only:
+                continue
             if f == "__rois__":
                 parts.append(("__rois__", rois_key))
             elif f == "__ica_sel__":
@@ -1074,12 +1090,12 @@ class DashboardApp:
             else:
                 parts.append((f, _hashable(cfg.get(f))))
         for up in _STAGE_UPSTREAM.get(stage, []):
-            parts.append(("^" + up, self._stage_signature(cfg, rois_key, up)))
+            parts.append(("^" + up, self._stage_signature(cfg, rois_key, up, as_upstream=True)))
         # Denoised outputs are built from the ICA basis, so they also depend on the
         # ICA stage — but only then, or an unrelated ica_random_state tweak would
         # mark ROI stale for a user who never turned denoising on.
         if denoising and stage in ("roi", "correlation", "export"):
-            parts.append(("^ica", self._stage_signature(cfg, rois_key, "ica")))
+            parts.append(("^ica", self._stage_signature(cfg, rois_key, "ica", as_upstream=True)))
         return tuple(parts)
 
     def _snapshot_run_inputs(self) -> None:

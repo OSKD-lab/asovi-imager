@@ -16,13 +16,22 @@ from typing import Any
 from asvimg import PipelineConfig, load_config, save_config
 from asvimg.config import _DB_FIELDS
 
-from .field_specs import FIELD_SPECS, FieldSpec, specs_by_section
+from .field_specs import FIELD_SPECS, MIRRORS, FieldSpec, specs_by_section
 
 _NULLABLE_TEXT = {"output_dir", "exp_name", "template"}
 
 
 def _tag(name: str) -> str:
     return f"cfgw_{name}"
+
+
+def _mirror_tag(name: str, section: str) -> str:
+    return f"cfgw_{name}__in_{section}"
+
+
+# A mirrored widget is one dpg item holding the whole value; float_pair (two
+# items) and text_dir (a group with a browse button) are not mirrorable.
+_MIRRORABLE_KINDS = {"bool", "int", "float", "combo", "text"}
 
 
 def _parse_int_list(text: str) -> list[int] | None:
@@ -60,6 +69,8 @@ class ConfigForm:
         # of silently downgrading them to the literal "cache".
         self._loaded_annotation = self.config.annotation
         self._loaded_ica_exclusion = self.config.ica_exclusion
+        # field -> every widget tag showing it (primary first); see MIRRORS
+        self._copies: dict[str, list[str]] = {}
 
     # --- build ------------------------------------------------------------
 
@@ -70,25 +81,41 @@ class ConfigForm:
         import dearpygui.dearpygui as dpg
 
         data = asdict(self.config)
+        mirrors: dict[str, list[tuple[FieldSpec, str]]] = {}
+        for name, section, group in MIRRORS:
+            spec = self._specs[name]
+            if spec.kind not in _MIRRORABLE_KINDS:
+                raise ValueError(f"MIRRORS: {name} is a {spec.kind!r} field, not mirrorable")
+            mirrors.setdefault(section, []).append((spec, group))
+        self._copies = {}
         for section, specs in specs_by_section().items():
-            if not specs:
+            # (spec, group, tag): the section's own fields, then its mirrors
+            rows = [(s, s.group, _tag(s.name)) for s in specs]
+            rows += [(s, g, _mirror_tag(s.name, section)) for s, g in mirrors.get(section, [])]
+            if not rows:
                 continue
             header = f"{section}" + ("  (reproducibility)" if section == "Data" else "")
             with dpg.collapsing_header(label=header, parent=parent, default_open=section in ("Data", "Channels")):
                 current_group = None
-                for spec in specs:
+                for spec, group, tag in rows:
                     # sub-category separator + label (e.g. Frames / Movie / ROI)
-                    if spec.group and spec.group != current_group:
+                    if group and group != current_group:
                         if current_group is not None:
                             dpg.add_separator()
-                        dpg.add_text(f"- {spec.group} -", color=(150, 180, 210))
-                        current_group = spec.group
-                    self._build_field(dpg, spec, data.get(spec.name))
+                        dpg.add_text(f"- {group} -", color=(150, 180, 210))
+                        current_group = group
+                    self._build_field(dpg, spec, data.get(spec.name), tag=tag)
+                    self._copies.setdefault(spec.name, []).append(tag)
                 if section_footer is not None:
                     section_footer(section)
+        for name, tags in self._copies.items():
+            if len(tags) > 1:
+                for t in tags:
+                    dpg.set_item_callback(t, self._cb_sync_copies)
+                    dpg.set_item_user_data(t, name)
 
-    def _build_field(self, dpg, spec: FieldSpec, value: Any) -> None:
-        tag = _tag(spec.name)
+    def _build_field(self, dpg, spec: FieldSpec, value: Any, tag: str | None = None) -> None:
+        tag = tag or _tag(spec.name)
         label = (spec.label or spec.name) + ("  *" if spec.is_db else "")
         kind = spec.kind
         W = 320
@@ -141,6 +168,14 @@ class ConfigForm:
         if spec.tooltip and dpg.does_item_exist(tag):
             with dpg.tooltip(tag):
                 dpg.add_text(spec.tooltip, wrap=400)
+
+    def _cb_sync_copies(self, sender, app_data, user_data) -> None:
+        """An edit to one copy of a mirrored field is written to all others."""
+        import dearpygui.dearpygui as dpg
+
+        for t in self._copies.get(user_data, []):
+            if t != sender and dpg.does_item_exist(t):
+                dpg.set_value(t, app_data)
 
     def _cb_browse_dir(self, sender, app_data, user_data) -> None:
         """Folder-picker for a text_dir field; writes the chosen path back."""
@@ -273,7 +308,8 @@ class ConfigForm:
             if not dpg.does_item_exist(tag):
                 continue
             value = data.get(spec.name)
-            self._set_widget(dpg, spec, tag, value)
+            for t in self._copies.get(spec.name, [tag]):
+                self._set_widget(dpg, spec, t, value)
 
     def _set_widget(self, dpg, spec: FieldSpec, tag: str, value: Any) -> None:
         kind = spec.kind
@@ -335,7 +371,8 @@ class ConfigForm:
                 continue
             tag = _tag(spec.name)
             if dpg.does_item_exist(tag):
-                self._set_widget(dpg, spec, tag, data.get(spec.name))
+                for t in self._copies.get(spec.name, [tag]):
+                    self._set_widget(dpg, spec, t, data.get(spec.name))
 
     def apply_ops_preset(self, path: str | Path) -> None:
         """Apply the processing (non-db) fields from a preset YAML file."""

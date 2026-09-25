@@ -34,7 +34,7 @@ _DB_FIELDS: frozenset[str] = frozenset({
 
 # Input file formats find_input_files can select. "auto" detects the single
 # format present and errors when a folder mixes formats; the rest force one.
-_INPUT_FORMATS: tuple[str, ...] = ("auto", "tif", "dcimg", "sifx", "h5")
+_INPUT_FORMATS: tuple[str, ...] = ("auto", "tif", "dcimg", "sifx", "nd2", "h5")
 
 # Storage dtype for the atlas-warped dF/F (dfWarped) payload.
 _ANNOTATED_DF_DTYPES: tuple[str, ...] = ("float32", "float16")
@@ -43,7 +43,7 @@ _ANNOTATED_DF_DTYPES: tuple[str, ...] = ("float32", "float16")
 @dataclass
 class PipelineConfig:
     input_dir: str = "Analysis/_sampleData01"
-    input_format: str = "auto"  # which input format to read: "auto" (detect; error if a folder mixes formats) | "tif" (.tif/.tiff) | "dcimg" | "sifx" | "h5" (Ito even/odd folder)
+    input_format: str = "auto"  # which input format to read: "auto" (detect; error if a folder mixes formats) | "tif" (.tif/.tiff) | "dcimg" | "sifx" | "nd2" (Nikon; T x C) | "h5" (Ito even/odd folder)
     input_order: str = "natural"  # read (concatenation) order of a multi-file recording: "natural" (natsort: rec_2 before rec_10; default) | "name" (plain lexicographic: rec_10 before rec_2) | "mtime" (oldest modification time first = acquisition order) | "ctime" (oldest creation time first — on copied/restored data this is the COPY order, not acquisition; verify in Quick Preview (All), which prints both timestamps). Also decides exp_name/exp_stem inference (first file) and the order channels_slip entries refer to
     output_dir: str | None = None
     channels_name: list[str] | None = None  # e.g. ["GCaMP", "GCaMP"] or ["GCaMP", "jRGECO", "GCaMP", "jRGECO"]

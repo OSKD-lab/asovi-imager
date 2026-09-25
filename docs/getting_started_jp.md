@@ -1,6 +1,6 @@
 # ASoVi Imager ユーザーガイド
 
-![ASoVi Imager](../docs/imgs/fig1.png)
+![ASoVi Imager](imgs/fig1.png)
 
 このガイドは、**プログラミングをほとんどやったことがない方**が、ASoVi Imager
 （広視野皮質イメージング＝WFCI の解析ソフト）を自分のパソコンで動かせるように
@@ -38,6 +38,7 @@
 - [第8章 NWB 形式で書き出す（データ共有・公開用）](#第8章-nwb-形式で書き出すデータ共有公開用)
 - [第9章 困ったとき](#第9章-困ったとき)
 - [付録A よく使うコマンド一覧](#付録a-よく使うコマンド一覧)
+- [付録B このソフトが使っているアルゴリズムと出典](#付録b-このソフトが使っているアルゴリズムと出典)
 
 ---
 
@@ -131,7 +132,7 @@ uv --version
 `uv 0.x.x` のようにバージョンが表示されれば **成功** です 🎉
 （数字は違っていて大丈夫です．）
 
-表示されない・エラーになる場合は [第9章](#uvが見つからないと言われる) を見てください．
+表示されない・エラーになる場合は [第9章](#uv-が見つからないと言われる) を見てください．
 
 ---
 
@@ -214,6 +215,18 @@ uv sync
 
 `uv sync` が終わってターミナルの入力待ちに戻れば、準備は完了です．
 
+### 2-3. あとで更新するとき
+
+`git` で入手した（方法B）なら、新しい版を取ってきて入れ直します：
+
+```bash
+git pull
+uv sync
+```
+
+ZIP（方法A）なら、新しい ZIP を落としてこの章をやり直します．設定と結果は
+データのそばに置かれ、プロジェクトフォルダの中には入らないので、更新しても残ります．
+
 ---
 
 ## 第3章 ソフト（GUI）を起動する
@@ -230,9 +243,9 @@ uv run python -m asvimg.gui
 > 💡 `uv run` は「このプロジェクト用の環境で動かす」という意味です．毎回この形で
 > 起動します．
 >
-> 📌 `asovi-gui` という短い呼び名でも起動できます．`uv sync` がプロジェクト自体を
-> インストールするので、`asovi-*` のコマンドはそのまま使えます．上の
-> `uv run python -m asvimg.gui` と同じものです．
+> 📌 `uv run asovi-gui` と打っても同じものが起動します．`uv sync` がプロジェクト自体を
+> インストールするので、`asovi-*` のコマンドはこの環境の中にあります．**`uv run` は
+> 付けたままにしてください** — 名前だけでは PATH に無いので動きません．
 
 **閉じるとき**は、ウィンドウの×ボタンで閉じてOKです．ターミナルは開いたままで
 かまいません（次の起動にまた使います）．
@@ -248,11 +261,22 @@ uv run python -m asvimg.gui
 - `.tif` / `.tiff`（OME-TIFF を含む）
 - `.dcimg`（浜松ホトニクス）
 - `.sifx`（Andor のスプールフォルダ）
+- `.nd2`（Nikon NIS-Elements）
+- 偶数／奇数に分けて保存された `.h5` 録画フォルダ（伊藤研形式）
+
+> 📌 **`.nd2` を使うとき**：1 つの時刻の中に全チャンネルが入っているので、
+> `channels_name` には **ND2 に保存されている順番どおり**に色を並べてください
+> （個数が ND2 のチャンネル数の倍数でないと前処理が止まります）．`fps` は
+> 「全チャンネル合わせて1秒あたり何枚か」です．Z スタックや多点（P）撮影の
+> ファイルは読めません．
 
 ### 置き方のルール
 
 **1回の録画に関するファイルを、1つのフォルダにまとめて置きます．** そのフォルダ
 （＝ **入力フォルダ / Input dir**）を、あとで画面で指定します．
+
+1つのフォルダに**違う形式が混ざっている**と、前処理は推測せずに止まります．
+その場合は Data の **`input_format`** でどちらを読むか明示してください．
 
 ### まずは小さなデータで練習
 
@@ -280,7 +304,10 @@ GUI は大きく **4つ+α** に分かれています（画像の番号に対応
   - **Make export dir**：出力フォルダ（`output_dir`．空欄なら `<input_dir>/asi/<形式>`）を先に作り、そこへ `db.yaml` / `ops.yaml` を書き出します（解析を走らせる前に設定だけ保存しておきたいとき）
   - **sifx converter**：Andor の `.sifx` スプールが入ったフォルダを選ぶと、全フレームを1本の BigTIFF にまとめます
 - Channels: 撮影の色（チャンネル）の並びやプローブ名など．フレーム毎に励起光/Probe の切り替えがある構造を想定
-- Preprocess: ゆれ補正や dF/F 計算のパラメータ
+- Preprocess: ゆれ補正や dF/F 計算のパラメータ．一番下の **5. TIFF output** にある
+  チャンネルごとの TIFF 書き出し（`save_raw_each_ch` / `save_registered_each_ch` と
+  `tiff_format` / `tiff_compression`）は **Outputs にも同じものが出ます**．どちらで
+  変えても連動し、書き出すのは preprocess です
 - PCA / ICA: 主成分・独立成分の数や除外の設定 (デノイズ，Allen CCF へのマッピングに使用)
 - Annotation: 脳地図合わせの設定 (アトラスの種類やランドマークの指定)
 - ROI: 信号読み出し用 ROI と領域間相関の設定（Stages の **Edit ROIs** でカスタム ROI を作成可能）
@@ -420,7 +447,7 @@ preprocess → pca → ica → annotation → roi → correlation → export
 | `Running`（黄） | 実行中 |
 | `Done`（緑） | 完了 |
 | `Done (* param-changed)`（オレンジ） | 完了しているが、**そのあと設定を変えた**ので、いまディスクにある結果は今の設定と一致しません．もう一度 **Run** で作り直されます |
-| `Skipped`（灰） | 実行しなかった．例：`skip_ica` がオン／脳地図合わせを `false`・Cancel した（＝ ROI・相関・書き出しも走りません）／**Stop で中断した preprocess**（出力が録画の“途中まで”なので、完了＝Done にはしません．必ずやり直してください） |
+| `Skipped`（灰） | 実行しなかった．例：`skip_ica` がオン／脳地図合わせを `False`・Cancel した（＝ ROI・相関・書き出しも走りません）／**Stop で中断した preprocess**（出力が録画の“途中まで”なので、完了＝Done にはしません．必ずやり直してください） |
 | `Error`（赤） | エラー（Log を確認） |
 
 **Last run** の列には、そのステージが**最後に終わった日時**が出ます（そのセッションで
@@ -448,15 +475,19 @@ preprocess → pca → ica → annotation → roi → correlation → export
 開きません**（設定を変える必要はありません）．**打ち直したい**ときだけ `annotation` を
 **`gui`**（毎回必ず開く）にします．
 
-**脳地図合わせをしない**なら `annotation` を **`false`** にします．このとき
+**脳地図合わせをしない**なら `annotation` を **`False`** にします．このとき
 annotation は `Skipped` になり、脳地図に依存する **ROI・相関・書き出しも自動でスキップ**
 されます（前処理と PCA / ICA だけを回したいときに使えます）．
 
 > 💡 **脳地図合わせをせずに ROI 信号だけ取りたい**ときは、`roi_space` を **`source`** に
 > して、**録画画像そのものの座標**で ROI を書いた `rois_source.csv`（列は `name,x,y,size`。
-> reg/dff のビニング後のピクセル座標）を出力フォルダに置きます．すると atlas 登録なしで
-> ROI 信号・相関が出せます（既定は `atlas` ＝ 脳地図合わせが必要）．`rois_source.csv` が
-> 無ければ ROI ステージは何も出しません（生の録画には既定 ROI が無いため）．
+> reg/dff のビニング後のピクセル座標）を出力フォルダに置きます．このファイルを作る
+> エディタはありません（自分で書きます）．無ければ ROI ステージは何も出しません
+> （生の録画には既定 ROI が無いため）．既定の `atlas` は脳地図合わせが必要です．
+>
+> ⚠️ **ただし Run All では走りません．** Run All は annotation が transform を作らなかった
+> 場合、`roi_space` に関係なく ROI・相関・書き出しを飛ばします．`roi` の行と `correlation`
+> の行の **Run** を 1 つずつ押してください（書き出しは脳地図合わせが必要なままです）．
 
 ### 5-6. ノイズ成分の選択（ICA）
 
@@ -475,7 +506,7 @@ annotation は `Skipped` になり、脳地図に依存する **ROI・相関・�
 - 選んだ結果は `ica_exclusion.json` に保存され、**2回目からは自動で再利用されて
   ウィンドウは開きません**（設定を変える必要はありません）
 - **選び直したい**ときだけ `ica_exclusion` を **`gui`**（毎回、前回の選択が反映された
-  状態で開く）にします．`false` にすると、ウィンドウも開かず除外もしません
+  状態で開く）にします．`False` にすると、ウィンドウも開かず除外もしません
 
 **選んだ成分は既定では「除外」されません**（`ica_denoise` が `off`）．初期状態では
 「どれがノイズか記録しておくだけ」で、ROI 信号や書き出す映像は**素の dF/F のまま**
@@ -512,8 +543,9 @@ Stages の **「Edit ROIs」**（annotation が終わると押せるようにな
 
 ## 第6章 結果はどこにできる？
 
-結果は、入力フォルダの中に作られる **`asi`** というフォルダの下にまとまります
-（保存形式ごとに `asi/mat` や `asi/npy` などの小部屋ができます）．
+既定では、入力フォルダの中に作られる **`asi`** フォルダの下にまとまります
+（`<input_dir>/asi/<output_format>`．保存形式ごとに `asi/mat` や `asi/npy` などの
+小部屋ができます）．Data の **`output_dir`** を指定した場合はそちらに出ます．
 
 主なファイルの例：
 
@@ -523,7 +555,7 @@ Stages の **「Edit ROIs」**（annotation が終わると押せるようにな
 | `dff_{名前}.npy` | dF/F（明るさ変化）の映像 |
 | `reg_meta.npz` | **前処理の完了印**（テンプレート・平均画像・フレーム数など）．GUI はこれを見て preprocess を `Done` と表示します |
 | `hemovar_{名前}.npy` | 血流補正で説明できた分散の割合（R²）のマップ．`hemovar_qc` が on で、そのチャンネル名に `donner` がある場合に作られます |
-| `{実験名}_dfWarped_{名前}_01.mat` など | 脳地図に合わせた dF/F（`save_annotated_dF_mat` を on にしたとき） |
+| `{実験名}_dfWarped_{名前}_01.{拡張子}` | 脳地図に合わせた dF/F．拡張子は `output_format` に従います（`save_annotated_dF_mat` を on にしたとき） |
 | `roiSignals_...` | 脳領域ごとの信号の時系列 |
 | `rois.csv` | **Edit ROIs** で作ったカスタム ROI．**これがあると、ROI 抽出はアトラス既定ではなくこちらを使います**（元に戻すにはこのファイルを消すか、エディタの「Reset to atlas defaults」→「Save rois.csv」） |
 | `corrMap/` | **Seed-based Corr. Maps** で計算した相関マップ（`.npy` と `.png`） |
@@ -538,6 +570,7 @@ Stages の **「Edit ROIs」**（annotation が終わると押せるようにな
 | `demux_correction.json` | Demux 補正ツールで作った補正（次回の前処理が自動反映） |
 | `movies/` | 書き出した dF/F 動画（`save_movie` を on にしたとき） |
 | `figures/` | 確認用の図（`save_figures` を on にしたとき） |
+| `tiffs/` | チャンネルごとの TIFF（**5. TIFF output** の項目を on にしたとき） |
 
 > 💡 **数値ファイルを MATLAB で使いたい**ときは `output_format` を `mat` にします．
 > データがとても大きい（1つの配列で 4GB を超える）場合でも、自動的に MATLAB v7.3
@@ -580,17 +613,17 @@ Stages の **「Edit ROIs」**（annotation が終わると押せるようにな
 2. ノイズとして外す IC → `ica_exclusion.json`
 
 この 2 ファイルは決めた瞬間に結果フォルダへ保存され、`annotation` と `ica_exclusion` は
-初期値の **`cache`** のままでよいので、次からは**ウィンドウを一切開かずにまったく同じ結果**が
-出ます（画面のないサーバーでも動きます）．
+初期値の **`cache`** のままでよいので、次からは**ウィンドウを一切開かずにこの 2 つの判断が
+再生されます**（画面のないサーバーでも動きます）．ほかの設定を変えなければ同じ結果が出ます．
 
-> ⚠️ **GUI のエディタを使ったときは、これに 2 つ加わります．** どちらも「人が決めたもの」で、
-> 前処理の `delete` でも消えません．結果を再現したいときは**一緒に残してください**．
-> - `rois.csv`（**Edit ROIs**）… **あるとアトラス既定の ROI の代わりに使われます**（消すと既定に戻り、ROI 信号と相関の数字が変わります）
-> - `rois_source.csv`（`roi_space="source"`）… atlas 登録なしで ROI 信号を取るときの ROI 定義
-> - `demux_correction.json`（**Demux 補正ツール**）… `demux_start_offset` / `channels_slip` より**優先**されます
+> ⚠️ **「人が決めたもの」はほかに 3 つあります．** いずれも前処理の `delete` では消えません．
+> 結果を再現したいときは**上の 2 つと一緒に残してください**．
+> - `rois.csv`（**Edit ROIs** が書きます）… **あるとアトラス既定の ROI の代わりに使われます**（消すと既定に戻り、ROI 信号と相関の数字が変わります）
+> - `rois_source.csv`（`roi_space="source"` で使う ROI 定義）… **これを書くツールはありません．自分で用意するファイルです**
+> - `demux_correction.json`（**Demux 補正ツール**が書きます）… `demux_start_offset` / `channels_slip` より**優先**されます
 
 ```bash
-uv run python -m asvimg.run_pipeline --input-dir <データのフォルダ>
+uv run python -m asvimg.run_pipeline --input-dir "<データのフォルダ>"
 ```
 
 1 匹目を GUI で丁寧に見てから、残りをこのコマンドで一気に流す、という使い方が
@@ -642,7 +675,7 @@ uv run python -m asvimg.gui.nwb_editor "D:\data\rec1\asi\npy"
 1. **Save metadata**：入力内容を `nwb_metadata.yaml` に保存（任意。Write 時にも自動保存されます）
 2. **Validate**：必須項目の抜けをチェック。「valid — no DANDI-critical problems」なら OK
 3. **Write NWB**：`<記録名>.nwb` を作成（進捗バーが動きます）
-4. **Run nwbinspector**：公開できるかの自動チェック。**CRITICAL が 0** なら DANDI にそのまま出せます
+4. **Run nwbinspector**：公開できるかの自動チェック。**CRITICAL が 0** なら、この検査では致命的な問題が見つからなかった、という意味です。ほかのメッセージも読んでから提出してください（DANDI 用の設定が読めなかったときは黙って通常の検査に切り替わるので、0 でも DANDI が受け取る保証にはなりません）
 
 > **うまくいかないとき**
 > - 「atlas-warped dF/F」を選ぶには、脳地図合わせ（annotation）が済んで `marks.mat` が
@@ -726,7 +759,7 @@ uv run python -m asvimg.gui.nwb_editor "D:\data\rec1\asi\npy"
 - ズレを直すには、専用の **Demux 補正ツール** を使います：
 
   ```bash
-  uv run python -m asvimg.gui.demux_editor <データのフォルダ>
+  uv run python -m asvimg.gui.demux_editor "<データのフォルダ>"
   ```
 
   > ⚠️ **フォルダの指定を省略しないでください．** 省略すると存在しない初期フォルダを
@@ -763,10 +796,15 @@ uv run python -m asvimg.gui.nwb_editor "D:\data\rec1\asi\npy"
 | uv が入っているか確認 | `uv --version` |
 | 初回セットアップ（部品をそろえる） | `uv sync` |
 | GUI（本体画面）を起動 | `uv run python -m asvimg.gui` |
-| 画面を使わず前処理だけ実行 | `uv run python -m asvimg.preprocess --input-dir <データのフォルダ>` |
-| 画面を使わず全部を一気に実行 | `uv run python -m asvimg.run_pipeline --input-dir <データのフォルダ>` |
-| NWB 形式で書き出す（共有・公開用。第8章） | `uv run python -m asvimg.gui.nwb_editor [解析済みフォルダ]` |
+| 画面を使わず前処理だけ実行 | `uv run python -m asvimg.preprocess --input-dir "<データのフォルダ>"` |
+| 画面を使わず全部を一気に実行 | `uv run python -m asvimg.run_pipeline --input-dir "<データのフォルダ>"` |
+| チャンネルの並びのズレを直す（第9章） | `uv run python -m asvimg.gui.demux_editor "<データのフォルダ>"` |
+| NWB 形式で書き出す（共有・公開用。第8章） | `uv run python -m asvimg.gui.nwb_editor "<解析済みフォルダ>"` |
+| Andor の `.sifx` を1本の TIFF にまとめる | `uv run python -m asvimg.sifx_convert "<パス>"` |
 | 前処理の細かいオプションを見る | `uv run python -m asvimg.preprocess --help` |
+
+山括弧の中は、括弧ごと自分のパスに置き換えてください．**引用符は残してください** —
+無いと、空白の入ったパスが2つの引数として読まれます．
 
 ---
 
