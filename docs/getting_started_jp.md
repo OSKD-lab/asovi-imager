@@ -117,6 +117,11 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 > **別の入れ方（お好みで）**
 > - Windows で「winget」が使える人：`winget install --id=astral-sh.uv -e`
 > - Mac で「Homebrew」を使っている人：`brew install uv`
+>
+> 上のコマンドは
+> [uv 公式のインストール手順](https://docs.astral.sh/uv/getting-started/installation/)
+> から取ったものです．うまくいかないときは、このガイドより公式ページのほうが
+> 正しいので、そちらを見てください（こちらは古くなることがあります）．
 
 ### 0-3. インストールできたか確認する
 
@@ -215,7 +220,28 @@ uv sync
 
 `uv sync` が終わってターミナルの入力待ちに戻れば、準備は完了です．
 
-### 2-3. あとで更新するとき
+### 2-3. 脳地図を作る（1回だけ）
+
+もう 1 つだけ準備があります．これも最初の 1 回だけです．
+
+```bash
+uv run asovi-atlas --download
+```
+
+このソフトが録画を合わせる先の「標準脳の地図」を、Allen の参照脳から取ってきて
+作ります．**約 4.8 GB をダウンロードし、数分かかります**ので、回線の良いときに
+実行してください．プロジェクトフォルダの外（`~/.asovi/atlas/`）に保存されるので、
+ソフトを更新しても消えず、やり直す必要もありません．
+
+> **なぜ同梱されていないの？** 参照脳は Allen Institute のもので、このソフトとは
+> 別の条件で公開されています．そのため同梱せず、使う人が取得する形にしています．
+> 以前同梱していたものより**領野の名前が正しくなる**という利点もあります．
+
+最後に `wrote …wfciAnnotationData_generated.h5` と出れば成功です．
+
+---
+
+### 2-4. あとで更新するとき
 
 `git` で入手した（方法B）なら、新しい版を取ってきて入れ直します：
 
@@ -795,6 +821,7 @@ uv run python -m asvimg.gui.nwb_editor "D:\data\rec1\asi\npy"
 | --- | --- |
 | uv が入っているか確認 | `uv --version` |
 | 初回セットアップ（部品をそろえる） | `uv sync` |
+| 脳地図を作る（1回だけ、約 4.8 GB） | `uv run asovi-atlas --download` |
 | GUI（本体画面）を起動 | `uv run python -m asvimg.gui` |
 | 画面を使わず前処理だけ実行 | `uv run python -m asvimg.preprocess --input-dir "<データのフォルダ>"` |
 | 画面を使わず全部を一気に実行 | `uv run python -m asvimg.run_pipeline --input-dir "<データのフォルダ>"` |

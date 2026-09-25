@@ -87,20 +87,27 @@ reads:
 
 ---
 
-## `src/asvimg/data/wfciAnnotationData.mat`
+## The cortical atlas — fetched and built, never redistributed
 
-**Origin** — the lab's own top-view cortical parcellation, made in 2024. It is not
-vendored third-party source, and the MIT `LICENSE` covers it; it is listed here
-because it is *derived from* the Allen Mouse Brain Common Coordinate Framework and
-now ships inside the wheel.
+**Nothing here carries Allen Institute data.** The top-view atlas the annotation
+stage registers to is derived from the Allen Mouse Brain Common Coordinate
+Framework, so `asovi-atlas --download` builds it on the machine that uses it,
+into `~/.asovi/atlas/`. An earlier version of this package shipped a prebuilt
+copy inside the wheel; that was withdrawn, because the MIT `LICENSE` this code
+carries is not the licence that data is under, and a wheel saying MIT over the
+whole of its contents would have told users something untrue.
+
+**What the build downloads**
+
+| | |
+| --- | --- |
+| CCF volumes | figshare [25365829](https://doi.org/10.6084/m9.figshare.25365829), *Modified Allen CCF 2017 for cortex-lab/allenCCF* (Nick Steinmetz) — **CC BY 4.0**, ~4.8 GB |
+| Structure tree | `structure_tree_safe_2017.csv` from [cortex-lab/allenCCF](https://github.com/cortex-lab/allenCCF) — it is not in the figshare article, and it cannot be replaced by a fresh Allen API query: the volume is stored *by index* into this file's row order |
 
 **Underlying data** — Allen Mouse Brain Common Coordinate Framework (CCFv3):
 Wang Q, et al. *The Allen Mouse Brain Common Coordinate Framework: A 3D Reference
 Atlas.* Cell 181(4):936–953 (2020). <https://doi.org/10.1016/j.cell.2020.04.007> ·
-<https://atlas.brain-map.org/>. Allen Institute data are subject to the Allen
-Institute Terms of Use.
-
-**Known limitation** — its region *names* are wrong (scrambled ID → acronym
-mapping; the `_R` / `_L` suffixes are fictional because the ID map is bilateral).
-`ACCFv3.get_mask()` and `ACCFv3.region_names` raise rather than answer from them.
-Geometry, boundaries, midline landmarks and point ROIs are correct.
+<https://atlas.brain-map.org/>. Allen Institute Content is subject to the
+[Allen Institute Terms of Use](https://alleninstitute.org/terms-of-use/), which
+permit research and other non-commercial use, and which travel with derived
+work. **Cite the paper above if you publish results that used the atlas.**

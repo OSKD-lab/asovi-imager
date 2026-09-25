@@ -30,11 +30,22 @@ DEFAULT_DIR = Path.home() / ".asovi" / "atlas"
 _REPO_DIR = Path("resources/atlas_from_figshare")
 _ALLENCCF_DIR = Path("resources/allenCCF")
 
-FIGSHARE_ARTICLE = 25365829          # Allen CCF 10um by-index volumes (CC-BY)
+FIGSHARE_ARTICLE = 25365829          # "Modified Allen CCF 2017 for cortex-lab/allenCCF" (CC BY 4.0)
 ANNOTATION_NAME = "annotation_volume_10um_by_index.npy"
 TEMPLATE_NAME = "template_volume_10um.npy"
 STRUCTURE_TREE_NAME = "structure_tree_safe_2017.csv"
 APPROX_DOWNLOAD_GB = 4.8
+
+# The structure tree is NOT in the figshare article -- only the two volumes are --
+# so it is fetched from the project those volumes were prepared for.
+#
+# It cannot be swapped for a fresh Allen API query, tempting as that is: the
+# annotation volume is stored *by index*, and the index is this file's row order.
+# A differently-ordered table of the same structures would silently relabel every
+# area in the atlas.
+STRUCTURE_TREE_URL = (
+    "https://raw.githubusercontent.com/cortex-lab/allenCCF/master/structure_tree_safe_2017.csv"
+)
 
 
 # --------------------------------------------------------------------------- #
@@ -77,6 +88,40 @@ def find_structure_tree(explicit: str | Path | None = None) -> Path | None:
         if p.exists():
             return p
     return None
+
+
+def ensure_structure_tree(explicit: str | Path | None = None, *, download: bool = False,
+                          interactive: bool | None = None, reporter=None) -> Path:
+    """Return the structure tree, fetching it on first run if permitted.
+
+    Same consent rule as :func:`ensure_ccf_volumes`: ``download=True`` fetches
+    without asking, an interactive TTY is prompted, and anything else raises with
+    manual steps.  It is ~220 kB, so the prompt mentions the source rather than
+    the size."""
+    got = find_structure_tree(explicit)
+    if got:
+        return got
+    target = resolve_download_dir(explicit)
+    if interactive is None:
+        interactive = bool(getattr(sys.stdin, "isatty", lambda: False)()
+                           and getattr(sys.stdout, "isatty", lambda: False)())
+
+    do = download
+    if not do and interactive:
+        ans = input(f"{STRUCTURE_TREE_NAME} not found. Fetch it from cortex-lab/allenCCF\n"
+                    f"into  {target} ?  [y/N] ")
+        do = ans.strip().lower() in ("y", "yes")
+    if not do:
+        looked = "\n  ".join(str(d / STRUCTURE_TREE_NAME) for d in candidate_dirs(explicit))
+        raise FileNotFoundError(
+            f"{STRUCTURE_TREE_NAME} not found. Looked in:\n  " + looked +
+            "\nFetch it with:  asovi-atlas --download   (or download it yourself from\n"
+            f"{STRUCTURE_TREE_URL} into {target}).")
+
+    target.mkdir(parents=True, exist_ok=True)
+    dest = target / STRUCTURE_TREE_NAME
+    _download_file(STRUCTURE_TREE_URL, dest, reporter=reporter, label=STRUCTURE_TREE_NAME)
+    return dest
 
 
 def resolve_download_dir(explicit: str | Path | None = None) -> Path:

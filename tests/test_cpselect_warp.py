@@ -12,12 +12,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 from asvimg.annotation import compute_transform, warp_image
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg.atlas import load_atlas
 from PIL import Image
 
 _HERE = Path(__file__).resolve().parent
-ATLAS_PATH = BUNDLED_ATLAS
+ATLAS_PATH = TEST_ATLAS_OR_DEFAULT
 TEST_OUTPUT_DIR = _HERE / "_test_outputs"
 
 

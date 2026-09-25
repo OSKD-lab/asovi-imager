@@ -115,7 +115,7 @@ class PipelineConfig:
     ica_denoise: str = "off"  # "off" (default; the exclusion is QC only, every saved artifact comes from the plain dF/F — MATLAB/notebook parity) | "subtract" (write ica/dff_{name}.npy = dF/F minus the excluded components, and let ROI / dfWarped / movies / correlation read THAT). Excluding nothing is the exact identity, so turning this on cannot change a value by itself
 
     # --- Atlas ---
-    annotation_atlas_path: str = ""  # "" = the atlas bundled with the package (asvimg/data/wfciAnnotationData.mat); otherwise a path to a .mat / .h5 atlas, e.g. one built by `asovi-atlas`
+    annotation_atlas_path: str = ""  # "" = config.USER_ATLAS, the per-user atlas built by `asovi-atlas --download`; otherwise a path to a .mat / .h5 atlas
 
     # --- Movie display ---
     save_movie_speed: float = 2.0  # realtime ×N (output fps = fps_channel * save_movie_speed)
@@ -467,24 +467,39 @@ def load_cli_config(config_path: str | Path | None) -> tuple["PipelineConfig", s
     return PipelineConfig(), "config: built-in defaults (no --config given)"
 
 
-BUNDLED_ATLAS = Path(__file__).resolve().parent / "data" / "wfciAnnotationData.mat"
+# The atlas is built on the machine that uses it, into this project's user-state
+# directory, by `asovi-atlas --download`.  It is NOT shipped inside the package:
+# it is derived from the Allen Mouse Brain Common Coordinate Framework, whose
+# terms are not the MIT terms this code carries, so redistributing it inside an
+# MIT wheel would have misstated what a user is allowed to do with it.  Building
+# it locally also means the user gets the *correct* region names, which the
+# MATLAB-era file that used to ship here did not have.
+USER_ATLAS = Path.home() / ".asovi" / "atlas" / "wfciAnnotationData_generated.h5"
+
+ATLAS_SETUP_HINT = (
+    "Build it once with:\n"
+    "    uv run asovi-atlas --download        (or: asovi-atlas --download)\n"
+    "It downloads the Allen CCF volumes (~4.8 GB, figshare 25365829, CC BY 4.0)\n"
+    "and the structure tree, then writes the atlas to the path above. Set\n"
+    "`annotation_atlas_path` if you keep it somewhere else."
+)
 
 
 def resolve_atlas_path(annotation_atlas_path: str | Path | None) -> Path:
     """The atlas file to open for a config value.
 
-    Empty (the default) means the copy bundled inside the package, so an installed
-    copy works with no setup and ``ops.yaml`` stays machine-independent -- the GUI
-    folds this value into the annotation stage signature, and an absolute default
-    would mark the stage stale just for moving the repository.
+    Empty (the default) means :data:`USER_ATLAS`, the per-user atlas that
+    ``asovi-atlas`` builds.  Keeping the *config* value empty rather than an
+    absolute path is deliberate: the GUI folds it into the annotation stage
+    signature, so a machine-specific path would mark the stage stale merely for
+    opening the same output folder on another machine.
 
-    Note the bundled atlas is the legacy MATLAB one: its geometry, boundaries and
-    point ROIs are right, but its ID map is bilateral and its region *names* are
-    wrong, so :meth:`ACCFv3.get_mask` refuses to use them.  Build one with
-    ``asovi-atlas`` when you need per-hemisphere area masks.
+    This resolves a path; it does not check that the file is there.  The loader
+    (:func:`asvimg.atlas.load_atlas`) is what reports a missing atlas, so a
+    stage signature can be computed without an atlas on disk.
     """
     if annotation_atlas_path is None or str(annotation_atlas_path) == "":
-        return BUNDLED_ATLAS
+        return USER_ATLAS
     return Path(annotation_atlas_path)
 
 

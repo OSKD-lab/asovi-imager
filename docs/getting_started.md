@@ -117,6 +117,11 @@ Text scrolls past for a while; when you see something like `installed`, it is do
 > **Other ways, if you prefer one**
 > - Windows with `winget`: `winget install --id=astral-sh.uv -e`
 > - macOS with Homebrew: `brew install uv`
+>
+> These commands are copied from
+> [uv's own installation page](https://docs.astral.sh/uv/getting-started/installation/).
+> If one of them does not work, that page is the authority — trust it over this
+> guide, which can fall behind.
 
 ### 0-3. Check that it worked
 
@@ -211,7 +216,29 @@ This downloads and installs Python 3.13 and every library the software needs.
 
 When `uv sync` finishes and the prompt returns, setup is complete.
 
-### 2-3. Updating later
+### 2-3. Build the brain map (once)
+
+One more setup step, and it is also a one-off:
+
+```bash
+uv run asovi-atlas --download
+```
+
+This fetches the Allen reference brain and builds the map this software aligns
+your recordings to. **It downloads about 4.8 GB and takes a few minutes**, so do
+it while you have a decent connection. It is stored outside the project folder
+(in `~/.asovi/atlas/`), so it survives updates and you never repeat it.
+
+> **Why is this not included?** The reference brain belongs to the Allen
+> Institute and is shared on their terms, not this project's, so it is fetched
+> by whoever uses it rather than bundled in. You also end up with better region
+> names this way than the copy that used to ship.
+
+You will know it worked when the last line says `wrote …wfciAnnotationData_generated.h5`.
+
+---
+
+### 2-4. Updating later
 
 If you used `git` (Option B), fetch the new version and re-sync:
 
@@ -863,6 +890,7 @@ All of these are run **from inside the project folder** (the `cd` in Chapter 2).
 | --- | --- |
 | Check that uv is installed | `uv --version` |
 | First-time setup (install the components) | `uv sync` |
+| Build the brain map (once, ~4.8 GB) | `uv run asovi-atlas --download` |
 | Launch the GUI | `uv run python -m asvimg.gui` |
 | Run only preprocessing, no GUI | `uv run python -m asvimg.preprocess --input-dir "<data folder>"` |
 | Run everything, no GUI | `uv run python -m asvimg.run_pipeline --input-dir "<data folder>"` |

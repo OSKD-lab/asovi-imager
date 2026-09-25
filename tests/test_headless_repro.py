@@ -23,12 +23,12 @@ import numpy as np
 import pytest
 import tifffile
 
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg import PipelineConfig, load_payload
 from asvimg.ica_state import load_exclusions, source_fingerprint
 from asvimg.runner import FakeIcaProvider, FakeMarksProvider, PipelineSession
 
-_ATLAS = BUNDLED_ATLAS
+_ATLAS = TEST_ATLAS_OR_DEFAULT
 
 
 def _make_input(inp: Path, T=160, H=48, W=52):
@@ -48,6 +48,9 @@ def _make_input(inp: Path, T=160, H=48, W=52):
 
 def _config(inp: Path, out: Path, **over) -> PipelineConfig:
     cfg = PipelineConfig(
+        # Explicit: the default is the per-user atlas, which this machine may not
+        # have built.  The skip guard checks _ATLAS, so use the same file.
+        annotation_atlas_path=str(_ATLAS),
         input_dir=str(inp), output_dir=str(out), output_format="npy", exp_name="REPRO",
         channels_name=["BL", "BL"], channels_prop=["source", "donner"],
         fps=20, ch_for_annotation=0,

@@ -20,7 +20,7 @@ import numpy as np
 import pytest
 from skimage.transform import SimilarityTransform
 
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg import PipelineConfig, load_payload, reg_channel_path, write_reg_meta
 from asvimg.annotation import _load_name_dff_stack
 from asvimg.extraction import extract_signals_from_source
@@ -177,7 +177,7 @@ def test_provenance_is_stamped_on_the_saved_payloads(out):
     from asvimg.extraction import extract_and_save_roi_signals
     from asvimg.atlas import load_atlas
 
-    atlas_path = BUNDLED_ATLAS
+    atlas_path = TEST_ATLAS_OR_DEFAULT
     if not atlas_path.exists():
         pytest.skip("atlas not available")
     atlas = load_atlas(atlas_path)

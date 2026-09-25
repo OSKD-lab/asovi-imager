@@ -18,7 +18,7 @@ matplotlib.use("Agg")
 
 import numpy as np
 
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg import (
     CancellationToken,
     PipelineConfig,
@@ -36,7 +36,7 @@ from asvimg.runner import (
     PipelineSession,
 )
 
-_ATLAS = BUNDLED_ATLAS
+_ATLAS = TEST_ATLAS_OR_DEFAULT
 
 
 def _fabricate_preprocess_outputs(out: Path, *, H=24, W=28, T=20, seed=0) -> None:
@@ -65,6 +65,10 @@ def _fabricate_preprocess_outputs(out: Path, *, H=24, W=28, T=20, seed=0) -> Non
 
 def _make_4ch_config(inp: Path, out: Path) -> PipelineConfig:
     return PipelineConfig(
+        # Explicit: the default is the per-user atlas, which a machine that has
+        # never run `asovi-atlas --download` does not have.  The guards on these
+        # tests check _ATLAS, so point the config at the same file.
+        annotation_atlas_path=str(_ATLAS),
         input_dir=str(inp),
         output_dir=str(out),
         output_format="npy",

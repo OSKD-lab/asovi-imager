@@ -5,10 +5,11 @@ Usage::
     from asvimg.atlas import ACCFv3
     from asvimg.config import resolve_atlas_path
 
-    atlas = ACCFv3.from_mat(resolve_atlas_path(""))   # the bundled atlas
+    atlas = ACCFv3.from_mat(resolve_atlas_path(""))   # the per-user atlas
     atlas.draw_boundaries(ax)
 
-``get_mask`` needs an atlas built by ``asovi-atlas``: the bundled one carries no
+``get_mask`` needs an atlas built by ``asovi-atlas`` -- which is now the default.
+The MATLAB-era file that used to ship carries no
 trustworthy region names and raises rather than answer from the wrong table.
 """
 
@@ -364,6 +365,16 @@ class ACCFv3:
         path : path to the atlas file.
         """
         path = Path(path)
+        if not path.exists():
+            # The atlas is built per machine, not shipped, so "missing" is the
+            # ordinary first-run state rather than a broken install.  Say how to
+            # fix it here: this is the one place every consumer passes through.
+            from .config import ATLAS_SETUP_HINT, USER_ATLAS
+
+            where = "the default location" if path == USER_ATLAS else "annotation_atlas_path"
+            raise FileNotFoundError(
+                f"No atlas at {path}  ({where}).\n{ATLAS_SETUP_HINT}"
+            )
         with h5py.File(path, "r") as f:
             if "asovi_atlas_version" in f:
                 return cls._from_generated_hdf5(f)

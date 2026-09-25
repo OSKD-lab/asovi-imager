@@ -12,14 +12,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg import atlas_build as ab
 from asvimg.atlas import ACCFv3, boundaries_from_id_map
 
 VOL = Path("resources/atlas_from_figshare/annotation_volume_10um_by_index.npy")
 TMPL = Path("resources/atlas_from_figshare/template_volume_10um.npy")
 ST = Path("resources/allenCCF/structure_tree_safe_2017.csv")
-SHIPPED = BUNDLED_ATLAS
+SHIPPED = TEST_ATLAS_OR_DEFAULT
 _HAVE_VOL = VOL.exists() and TMPL.exists() and ST.exists()
 
 

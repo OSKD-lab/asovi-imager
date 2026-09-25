@@ -19,9 +19,11 @@ brain-outline IoU 0.994):
   5. project the template the same way for the grayscale reference image;
   6. write an ``ACCFv3``-readable HDF5 (region boundaries are derived on load).
 
-The shipped ``wfciAnnotationData.mat`` is itself exactly the Allen isocortex
-dorsal parcellation (34 areas, **bilateral**); note its ``_REGION_NAMES`` in
-``atlas.py`` were mislabelled — a generated atlas carries correct ``region_names``.
+Nothing is shipped: the atlas is built here, on the machine that uses it, into
+``config.USER_ATLAS``.  The MATLAB-era ``wfciAnnotationData.mat`` that used to
+ride inside the package was itself exactly the Allen isocortex dorsal
+parcellation (34 areas, **bilateral**) with mislabelled ``_REGION_NAMES``; what
+this module generates is both correctly named and split L/R.
 """
 
 from __future__ import annotations
@@ -236,10 +238,11 @@ def _resample_labels(arr2d: np.ndarray, out_hw: tuple[int, int]) -> np.ndarray:
     return arr2d[np.ix_(ri, ci)]
 
 
-# Where `asovi-atlas` writes when --out is not given.  ~/.asovi/ is this project's
-# user-state directory (see ccf_data.DEFAULT_DIR, gui presets); a repo-relative
-# path would not exist for a pip-installed copy.
-DEFAULT_GENERATED_ATLAS = Path.home() / ".asovi" / "atlas" / "wfciAnnotationData_generated.h5"
+# Where `asovi-atlas` writes when --out is not given -- and, since nothing ships
+# inside the package any more, also where an empty `annotation_atlas_path`
+# resolves to.  One definition, in config, so the builder and the reader cannot
+# drift apart.
+from .config import USER_ATLAS as DEFAULT_GENERATED_ATLAS
 
 def _to_atlas_frame(td: np.ndarray, out_hw: tuple[int, int], *,
                     ap_crop: tuple[float, float] = _AP_CROP_DEFAULT,
@@ -478,11 +481,19 @@ def main(argv: list[str] | None = None) -> int:
     except (FileNotFoundError, RuntimeError) as exc:
         print(f"[asovi-atlas] {exc}")
         return 2
-    st = Path(a.structure_tree) if a.structure_tree else ccf_data.find_structure_tree(a.atlas_dir)
-    if st is None or not Path(st).exists():
-        print(f"[asovi-atlas] {ccf_data.STRUCTURE_TREE_NAME} not found — place it in the atlas dir "
-              f"or resources/allenCCF/ (from the cortex-lab/allenCCF repo).")
-        return 2
+    # The structure tree is not in the figshare article, so it is fetched
+    # separately -- under the same consent rule as the volumes.
+    if a.structure_tree:
+        st = Path(a.structure_tree)
+        if not st.exists():
+            print(f"[asovi-atlas] structure tree not found: {st}")
+            return 2
+    else:
+        try:
+            st = ccf_data.ensure_structure_tree(a.atlas_dir, download=a.download, reporter=_prog)
+        except (FileNotFoundError, RuntimeError) as exc:
+            print(f"[asovi-atlas] {exc}")
+            return 2
     h, w = (int(x) for x in a.hw.split(","))
     crop = {}
     if a.ap_crop:

@@ -10,7 +10,7 @@ are out of scope here.
 
 from __future__ import annotations
 
-from asvimg.config import BUNDLED_ATLAS
+from conftest import TEST_ATLAS_OR_DEFAULT
 
 import os
 import subprocess
@@ -303,7 +303,7 @@ class TestConfigForm(unittest.TestCase):
         from asvimg.atlas import ACCFv3
         from asvimg.gui.corr_map_panel import CorrMapPanel
 
-        _ATLAS = BUNDLED_ATLAS
+        _ATLAS = TEST_ATLAS_OR_DEFAULT
         if not _ATLAS.exists():
             self.skipTest("atlas not found")
 
@@ -355,7 +355,7 @@ class TestConfigForm(unittest.TestCase):
         from asvimg.atlas import ACCFv3
         from asvimg.gui.roi_editor import RoiEditor
 
-        _ATLAS = BUNDLED_ATLAS
+        _ATLAS = TEST_ATLAS_OR_DEFAULT
         if not _ATLAS.exists():
             self.skipTest("atlas not found")
 

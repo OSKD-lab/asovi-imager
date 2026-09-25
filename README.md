@@ -70,7 +70,9 @@ uv pip install git+https://github.com/OSKD-lab/asovi-imager
 > pip install git+https://github.com/OSKD-lab/asovi-imager
 > ```
 >
-> No `uv` yet? `pip install uv`, or follow
+> No `uv` yet? `pip install uv`, or see
+> [uv's installation page](https://docs.astral.sh/uv/getting-started/installation/) —
+> or follow
 > [Chapter 0 of the getting-started guide](docs/getting_started.md#chapter-0--install-uv),
 > which walks through it for Windows and macOS.
 
@@ -94,6 +96,15 @@ uv pip install "asovi-imager[nwb] @ git+https://github.com/OSKD-lab/asovi-imager
 
 `[benchmark]` is the one worth skipping: numba brings ~120 MB of llvmlite for a
 registrator that runs at ~175 ms/frame against the production torch one's ~12.
+
+**Then build the atlas** — once per machine, before the first run:
+
+```bash
+uv run asovi-atlas --download
+```
+
+Nothing in the wheel is an atlas; see [Build the atlas once](#build-the-atlas-once)
+for what this downloads and why it is not shipped.
 
 **Or work on it** — clone, then `uv sync`. It installs the dependencies *and* the
 project itself, so the `asovi-*` commands and `import asvimg` both work from the
@@ -209,22 +220,42 @@ uv run python -m asvimg.preprocess \
 
 Sample full flag list: `uv run python -m asvimg.preprocess --help`.
 
-### The bundled atlas
+### Build the atlas once
 
-The atlas that ships in the wheel is the lab's original MATLAB one. Its geometry,
-region boundaries, midline landmarks and **point ROIs** are correct — including the
-left/right split, which comes from 15 hardcoded right-hemisphere coordinates
-mirrored across the midline (30 ROIs, `VISp_R` … `MOs-al_L`), not from the file.
+**No atlas ships in the wheel**, so the first thing to do after installing is
+build one:
 
-Its region *names* are not correct: the ID → acronym mapping is scrambled, and the
-`_R` / `_L` suffixes are fictional because the ID map is bilateral — one ID spans
-both hemispheres. So `ACCFv3.get_mask()` and `ACCFv3.region_names` **raise** on it
-rather than return a plausible-looking wrong answer. Nothing in the pipeline uses
-them; ROI signals come from the point ROIs.
+```bash
+uv run asovi-atlas --download        # or: asovi-atlas --download
+```
 
-If you need per-hemisphere *area* masks, build an atlas with `asovi-atlas` — it
-splits each area at the midline and carries correct names — and point
-`annotation_atlas_path` at the result.
+That downloads the Allen CCF volumes (~4.8 GB) and the structure tree, projects
+the isocortex to a top view, and writes
+`~/.asovi/atlas/wfciAnnotationData_generated.h5`. An empty `annotation_atlas_path`
+— the default — means exactly that file, so once it exists nothing else needs
+configuring. It takes a few minutes, and only has to happen once per machine;
+the download is skipped if the volumes are already there. Without `--download`
+you get a `[y/N]` prompt instead, and a headless run raises with manual steps.
+
+**Why not ship it?** The atlas is derived from the Allen CCF, whose terms are not
+the MIT terms this code carries. A wheel that declared MIT over a copy of that
+data would have told users something untrue, so the data is fetched by whoever
+uses it. See [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the sources
+and their licences, and cite Wang et al. (2020) if you publish results that used
+the atlas.
+
+**What you get** is also better than what used to ship: a generated atlas splits
+each area at the midline and carries **correct region names**, so
+`ACCFv3.get_mask()` and `ACCFv3.region_names` answer instead of raising. (The old
+MATLAB file's ID → acronym mapping was scrambled and its `_R` / `_L` suffixes
+fictional, because its ID map was bilateral; the name-driven API refused to use
+it. Point ROIs were never affected — the left/right split comes from 15 hardcoded
+right-hemisphere coordinates mirrored across the midline, 30 ROIs, `VISp_R` …
+`MOs-al_L`, not from the atlas file.)
+
+The volumes land in `~/.asovi/atlas/` by default; `$ASOVI_ATLAS_DIR` or
+`--atlas-dir` puts them elsewhere, and `--out` chooses where the built atlas
+goes (point `annotation_atlas_path` at it if you move it).
 
 ## Supported inputs
 
@@ -351,7 +382,7 @@ Worked examples — the pair must describe the acquisition exactly:
 | `annotation` | `"cache"` (load saved `marks.mat`) / `"gui"` (cpselect) / `(src_pts, ref_pts)` / `false` (skip) |
 | `annotation_allow_reflection` | Allow a mirror (left-right flip) in the atlas transform. Needs non-midline control points to have any effect |
 | `ch_for_annotation` | Channel index (0-based) whose **group** provides the maps cpselect offers. PCA/ICA themselves run on *every* group with a source — one fluorophore's components say nothing about another's |
-| `annotation_atlas_path` | Atlas file. **Empty (the default) = the atlas bundled with the package** (`asvimg/data/wfciAnnotationData.mat`), so an installed copy works with no setup; otherwise a path to a `.mat` / `.h5`, e.g. one built by `asovi-atlas`. Keep it empty (not an absolute path) unless you mean to override — the GUI folds this value into the annotation stage signature, so a machine-specific path marks the stage stale on another machine |
+| `annotation_atlas_path` | Atlas file. **Empty (the default) = the per-user atlas** `~/.asovi/atlas/wfciAnnotationData_generated.h5`, which `asovi-atlas --download` builds (see [Build the atlas once](#build-the-atlas-once)); otherwise a path to a `.mat` / `.h5`. Keep it empty (not an absolute path) unless you mean to override — the GUI folds this value into the annotation stage signature, so a machine-specific path marks the stage stale on another machine |
 | `pca_n_components`, `pca_smooth_sigma` | PCA component count, and the Gaussian sigma (frames) used to smooth the **plotted** temporal traces. The smoothing is display-only: the decomposition, and therefore the IC numbering, does not depend on it |
 | `pca_skip_frames` | Temporal stride for the PCA/ICA fitting input (memory/speed; `1` = every frame). Fit-only — the ICA basis is purely spatial, so it is applied to the full-length timeline |
 | `ica_n_components`, `ica_max_iter`, `ica_random_state` | FastICA parameters |
