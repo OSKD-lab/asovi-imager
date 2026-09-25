@@ -16,7 +16,7 @@ Only ``T`` / ``C`` / ``Y`` / ``X`` are accepted.  A Z-stack, multi-point (``P``)
 or RGB (``S``) file raises instead of being flattened into the time axis, where
 it would silently read as extra channels or frames.
 
-Needs the ``nd2`` extra (``pip install "asovi-imager[nd2]"``); the import is
+Needs the ``nd2`` extra (``uv pip install "asovi-imager[nd2]"``); the import is
 deferred to :class:`Nd2Recording`, so ``import asvimg`` does not require it.
 """
 
@@ -37,7 +37,7 @@ def _open_nd2(path: Path):
     except ModuleNotFoundError as exc:  # optional extra
         raise ModuleNotFoundError(
             'reading .nd2 files needs the `nd2` extra: '
-            'pip install "asovi-imager[nd2]"'
+            'uv pip install "asovi-imager[nd2]" (or pip)'
         ) from exc
     return nd2.ND2File(path)
 

@@ -1,0 +1,82 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # `uv sync` pulls every extra through the dev group, so the NWB export and
+      # the atlas builder are exercised rather than skipped.  It also honours
+      # [tool.uv.sources], which pins torch to the CPU build -- plain pip would
+      # pull the CUDA wheels here and spend gigabytes on a pipeline that never
+      # touches a GPU.
+      - name: Install
+        run: uv sync
+
+      # Run from the repository root: some tests reach for files beside the
+      # package, and resolve them relative to the root.
+      #
+      # The two modules left out build real Dear PyGui viewports, which need a
+      # display this runner does not have -- they would error, not skip.  That is
+      # 32 of 392 tests; the other 360 run here.  To cover them too, install a
+      # virtual display and drop the --ignore flags:
+      #     sudo apt-get install -y xvfb libgl1 libxrandr2 libxinerama1 libxcursor1
+      #     xvfb-run -a uv run python -m pytest tests -q
+      - name: Tests
+        run: >-
+          uv run python -m pytest tests -q
+          --ignore=tests/test_gui_smoke.py
+          --ignore=tests/test_nwb_editor.py
+
+  # The documented way in is `uv pip install git+...`.  Build the wheel and put it
+  # into an empty environment, so a broken manifest fails here rather than for
+  # whoever installs it next.
+  wheel:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Build
+        run: uv build --wheel --out-dir dist
+
+      - name: Install it into an empty environment
+        run: |
+          uv venv --python 3.13 /tmp/fresh
+          VIRTUAL_ENV=/tmp/fresh uv pip install dist/*.whl
+
+      - name: It imports, and the console scripts are there
+        run: |
+          /tmp/fresh/bin/python -c "import asvimg; print('import asvimg: ok')"
+          for cmd in asovi-run asovi-preprocess asovi-gui asovi-nwb asovi-atlas; do
+            test -x "/tmp/fresh/bin/$cmd" || { echo "missing console script: $cmd"; exit 1; }
+          done
+
+      # The licence text has to travel in the wheel, not only in the repository:
+      # the DFT registration is a close port of BSD-licensed MATLAB, and BSD asks
+      # a binary distribution to carry the notice with it.
+      - name: The notices ship inside the wheel
+        run: |
+          shopt -s nullglob
+          d=(/tmp/fresh/lib/python3.13/site-packages/asovi_imager-*.dist-info/licenses)
+          test -f "${d[0]}/LICENSE" || { echo "LICENSE missing from the wheel"; exit 1; }
+          test -f "${d[0]}/THIRD_PARTY_NOTICES.md" || { echo "notices missing from the wheel"; exit 1; }
+          echo "both licence files present"

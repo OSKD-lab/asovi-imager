@@ -17,7 +17,7 @@ try:
 except ModuleNotFoundError as exc:  # optional extra
     raise ModuleNotFoundError(
         'the Numba registrator needs the `benchmark` extra: '
-        'pip install "asovi-imager[benchmark]". It is a reference '
+        'uv pip install "asovi-imager[benchmark]". It is a reference '
         'implementation for tests/benchmark_dft_compare.py; the pipeline uses '
         'asvimg.registration.DftRegistrator (torch), which is far faster.'
     ) from exc

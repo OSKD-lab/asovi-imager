@@ -455,7 +455,7 @@ class NwbEditor:
                 except ModuleNotFoundError as exc:  # optional extra
                     raise ModuleNotFoundError(
                         'validating NWB needs the `nwb` extra: '
-                        'pip install "asovi-imager[nwb]"'
+                        'uv pip install "asovi-imager[nwb]" (or pip)'
                     ) from exc
 
                 try:

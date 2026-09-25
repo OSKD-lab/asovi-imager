@@ -1,0 +1,99 @@
+cff-version: 1.2.0
+title: "ASoVi Imager"
+message: "If you use this software in work you publish, please cite it."
+type: software
+authors:
+  - family-names: Takeuchi
+    given-names: Ryosuke
+    affiliation: OSKD-lab
+  - family-names: Sato
+    given-names: Akinori Y
+    affiliation: OSKD-lab
+repository-code: "https://github.com/OSKD-lab/asovi-imager"
+abstract: >-
+  An analysis pipeline for wide-field cortical imaging (WFCI): DFT-based
+  registration, linear subtraction of the haemodynamic component (dF/F),
+  PCA/ICA denoising, registration to the Allen Mouse Brain Common Coordinate
+  Framework, per-region signal extraction, correlation analysis, and export
+  (including NWB).
+keywords:
+  - neuroscience
+  - widefield imaging
+  - calcium imaging
+  - mesoscale imaging
+  - image registration
+  - Allen CCF
+  - ICA
+  - NWB
+license: MIT
+version: 0.1.0
+date-released: "2026-09-25"
+
+# The methods this pipeline implements are other people's; cite them for the
+# method, and the entry above for this implementation of it.
+references:
+  - type: article
+    title: "Efficient subpixel image registration algorithms"
+    authors:
+      - family-names: Guizar-Sicairos
+        given-names: Manuel
+      - family-names: Thurman
+        given-names: "Samuel T."
+      - family-names: Fienup
+        given-names: "James R."
+    journal: "Optics Letters"
+    volume: 33
+    issue: 2
+    start: 156
+    end: 158
+    year: 2008
+    doi: "10.1364/OL.33.000156"
+    notes: "The registration algorithm; src/asvimg/registration/ is a port of it."
+  - type: article
+    title: >-
+      The Allen Mouse Brain Common Coordinate Framework: A 3D Reference Atlas
+    authors:
+      - family-names: Wang
+        given-names: Quanxin
+      - name: "et al."
+    journal: "Cell"
+    volume: 181
+    issue: 4
+    start: 936
+    end: 953
+    year: 2020
+    doi: "10.1016/j.cell.2020.04.007"
+    notes: "The reference atlas the annotation stage registers to."
+  - type: article
+    title: >-
+      Single-trial neural dynamics are dominated by richly varied movements
+    authors:
+      - family-names: Musall
+        given-names: Simon
+      - family-names: Kaufman
+        given-names: "Matthew T."
+      - name: "et al."
+    journal: "Nature Neuroscience"
+    volume: 22
+    start: 1677
+    end: 1686
+    year: 2019
+    doi: "10.1038/s41593-019-0502-4"
+    notes: >-
+      The WidefieldImager pipeline this project's linear subtraction and demux
+      QC follow.
+  - type: article
+    title: "Independent component analysis: algorithms and applications"
+    authors:
+      - family-names: Hyvärinen
+        given-names: Aapo
+      - family-names: Oja
+        given-names: Erkki
+    journal: "Neural Networks"
+    volume: 13
+    issue: 4-5
+    start: 411
+    end: 430
+    year: 2000
+    doi: "10.1016/S0893-6080(00)00026-5"
+    notes: "FastICA, used through scikit-learn for the ICA stage."

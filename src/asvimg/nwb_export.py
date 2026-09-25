@@ -37,7 +37,7 @@ try:
     from hdmf.data_utils import GenericDataChunkIterator
 except ModuleNotFoundError as exc:  # optional extra
     raise ModuleNotFoundError(
-        'NWB export needs the `nwb` extra: pip install "asovi-imager[nwb]"'
+        'NWB export needs the `nwb` extra: uv pip install "asovi-imager[nwb]"'
     ) from exc
 
 from .nwb_meta import ChannelMeta, ExportOptions, NwbMetadata
@@ -154,7 +154,7 @@ def write_nwb(
         from pynwb.image import GrayscaleImage
     except ModuleNotFoundError as exc:  # pynwb is an optional extra
         raise ModuleNotFoundError(
-            'writing NWB needs the `nwb` extra: pip install "asovi-imager[nwb]"'
+            'writing NWB needs the `nwb` extra: uv pip install "asovi-imager[nwb]"'
         ) from exc
     from .io import read_reg_meta, resolve_exp_stem
 

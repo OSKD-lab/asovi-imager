@@ -51,8 +51,28 @@ git blame src/asvimg/annotation.py     # then `git show <sha>` on the line you d
 **Install it** (import name `asvimg`, distribution name `asovi-imager`):
 
 ```bash
-pip install git+https://github.com/OSKD-lab/asovi-imager
+uv pip install git+https://github.com/OSKD-lab/asovi-imager
 ```
+
+> ### Use `uv`, not `pip`
+>
+> The CPU pin is expressed as `[tool.uv.sources]`, and **only `uv` reads it** —
+> including through a `git+` install. `pip` sees the plain `torch>=2.6.0` and
+> resolves it from PyPI, which on Linux is the CUDA build: measured against this
+> project, 61 packages instead of 42, the extra 19 being `nvidia-*` / `cuda-*` /
+> `triton` wheels totalling several GB, for a pipeline that never touches a GPU.
+> It does not fail — it just silently installs that.
+>
+> If you have to use `pip`, put the CPU build in first and it will be kept:
+>
+> ```bash
+> pip install torch --index-url https://download.pytorch.org/whl/cpu
+> pip install git+https://github.com/OSKD-lab/asovi-imager
+> ```
+>
+> No `uv` yet? `pip install uv`, or follow
+> [Chapter 0 of the getting-started guide](docs/getting_started.md#chapter-0--install-uv),
+> which walks through it for Windows and macOS.
 
 That is the whole pipeline — preprocess through export, the GUI included. A few
 features have dependencies heavy enough not to install for everyone; each is
@@ -69,19 +89,29 @@ which one to add:
 | `[all]` | all of the above | |
 
 ```bash
-pip install "asovi-imager[nwb] @ git+https://github.com/OSKD-lab/asovi-imager"
+uv pip install "asovi-imager[nwb] @ git+https://github.com/OSKD-lab/asovi-imager"
 ```
 
 `[benchmark]` is the one worth skipping: numba brings ~120 MB of llvmlite for a
 registrator that runs at ~175 ms/frame against the production torch one's ~12.
 
-**Or work on it** — `uv sync` installs the dependencies *and* the project itself,
-so the `asovi-*` commands and `import asvimg` both work from a checkout:
+**Or work on it** — clone, then `uv sync`. It installs the dependencies *and* the
+project itself, so the `asovi-*` commands and `import asvimg` both work from the
+checkout, and the CPU pin applies without any of the caveats above:
 
 ```bash
+git clone https://github.com/OSKD-lab/asovi-imager
+cd asovi-imager
 uv sync
 uv run python -m pytest tests -q     # run from the repository root
+uv run python -m asvimg.gui          # or: uv run asovi-gui
 ```
+
+`uv sync` pulls **every extra** through the dev group — the extras exist to keep a
+user's install small, not to give a contributor a partial checkout.
+
+Step by step, for a first time and with screenshots:
+[**Getting started**](docs/getting_started.md) · [**はじめかた**](docs/getting_started_jp.md).
 
 > **The sample data is not in this repository.** `Analysis/_sampleData*/` is
 > gitignored (it holds the maintainer's recordings), yet it is still the default

@@ -4,6 +4,23 @@ version = "0.1.0"
 description = "Wide-field cortical imaging (WFCI) analysis pipeline: registration, linear subtraction (dF/F), PCA/ICA denoising, Allen CCFv3 atlas registration, and ROI signal extraction"
 readme = "README.md"
 requires-python = ">=3.13"
+authors = [
+    { name = "Ryosuke Takeuchi" },
+    { name = "Akinori Y Sato" },
+]
+keywords = [
+    "neuroscience", "widefield imaging", "calcium imaging", "mesoscale imaging",
+    "image registration", "Allen CCF", "ICA", "NWB",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
 license = "MIT"
 # Both, not just LICENSE: the DFT registration is a close port of BSD-licensed
 # MATLAB, and BSD asks that a binary distribution reproduce the notice in the
@@ -28,6 +45,12 @@ dependencies = [
     "torch>=2.6.0",
     "tqdm>=4.67.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/OSKD-lab/asovi-imager"
+Repository = "https://github.com/OSKD-lab/asovi-imager"
+Issues = "https://github.com/OSKD-lab/asovi-imager/issues"
+"Getting started" = "https://github.com/OSKD-lab/asovi-imager/blob/main/docs/getting_started.md"
 
 # Every one of these is imported lazily, at the point of use -- `import asvimg`
 # pulls in none of them -- so a base install is the pipeline, and you add what you
