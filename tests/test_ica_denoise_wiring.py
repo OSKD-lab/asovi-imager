@@ -95,7 +95,8 @@ def out():
         yield d
 
 
-def _artifact_ic(out, cfg):
+def _artifact_corrs(out, cfg):
+    """|corr| of every IC map with the stripe, in IC order."""
     s = PipelineSession(cfg, ica_provider=FakeIcaProvider([]))
     s.run_pca()
     s.run_ica()
@@ -103,7 +104,25 @@ def _artifact_ic(out, cfg):
     art = np.zeros((H, W))
     art[:, 2:5] = 1.0
     maps = ica.spatial.reshape(ica.n_components, -1)
-    return int(np.argmax([abs(np.corrcoef(m, art.ravel())[0, 1]) for m in maps]))
+    return np.array([abs(np.corrcoef(m, art.ravel())[0, 1]) for m in maps])
+
+
+def _artifact_ic(out, cfg):
+    return int(np.argmax(_artifact_corrs(out, cfg)))
+
+
+def _artifact_ics(out, cfg, rel=0.5):
+    """Every IC that carries the stripe, not only the strongest one.
+
+    How many components the artifact lands in is a property of the
+    decomposition, not of the wiring under test, and it differs with the BLAS
+    FastICA runs on: one component here, two on the CI runner. A user looking
+    at the IC maps ticks all of the ones that show the artifact, so the test
+    does too -- otherwise it is really asserting that ICA separated the
+    stripe perfectly, which is not this file's contract.
+    """
+    c = _artifact_corrs(out, cfg)
+    return [int(i) for i in np.flatnonzero(c >= rel * c.max())]
 
 
 def test_off_is_the_default_and_reads_the_plain_dff(out):
@@ -128,11 +147,11 @@ def test_subtract_with_nothing_excluded_changes_nothing(out):
 
 def test_subtract_removes_the_artifact_from_the_roi_signals(out):
     cfg0 = _config(out)
-    art_ic = _artifact_ic(out, cfg0)
+    art_ics = _artifact_ics(out, cfg0)
     plain, _ = _roi_signals(cfg0, out)
 
     cfg = _config(out, ica_denoise="subtract")
-    PipelineSession(cfg, ica_provider=FakeIcaProvider([art_ic])).run_ica()
+    PipelineSession(cfg, ica_provider=FakeIcaProvider(art_ics)).run_ica()
     got, _ = _roi_signals(cfg, out)
 
     t = np.arange(T)
@@ -143,7 +162,9 @@ def test_subtract_removes_the_artifact_from_the_roi_signals(out):
         return abs(float(np.dot(v, course - course.mean())
                          / np.dot(course - course.mean(), course - course.mean())))
 
-    assert carried(got) < 0.2 * carried(plain)
+    assert carried(got) < 0.2 * carried(plain), (
+        f"excluded ICs {art_ics}: {carried(plain):.3f} -> {carried(got):.3f}"
+    )
 
 
 def test_provenance_is_stamped_on_the_saved_payloads(out):

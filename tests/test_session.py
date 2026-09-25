@@ -1971,14 +1971,21 @@ class TestQuickPreview(unittest.TestCase):
 
     def test_preview_survives_unrepresentable_timestamps(self) -> None:
         """A preview must never be the thing that fails: some archive/restore
-        paths and network shares report pre-1970 or absurd times, which
-        datetime.fromtimestamp rejects outright on Windows."""
+        paths and network shares report pre-1970 or absurd times.
+
+        Which of those `fromtimestamp` rejects is the platform's business --
+        Windows refuses anything before 1970, POSIX renders it -- so the
+        contract here is that `_fmt_time` always answers with something
+        printable, never an exception."""
         from asvimg.runner.session import _fmt_time
 
-        for bad in (-1.0, -86400.0, 159089797835.0, 1e20):
-            self.assertEqual(_fmt_time(bad), "?")
+        stamp = r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$"
+        for bad in (-1.0, -86400.0, 159089797835.0):
+            got = _fmt_time(bad)
+            self.assertTrue(got == "?" or re.match(stamp, got), (bad, got))
+        self.assertEqual(_fmt_time(1e20), "?")  # out of datetime's range anywhere
         self.assertEqual(_fmt_time(0), "-")
-        self.assertRegex(_fmt_time(1_000_000.0), r"^\d{4}-\d\d-\d\d \d\d:\d\d:\d\d$")
+        self.assertRegex(_fmt_time(1_000_000.0), stamp)
 
     @staticmethod
     def _write_files(inp: Path, counts: tuple[int, ...]) -> None:
