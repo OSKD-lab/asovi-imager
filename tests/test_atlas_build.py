@@ -16,11 +16,18 @@ from conftest import TEST_ATLAS_OR_DEFAULT
 from asvimg import atlas_build as ab
 from asvimg.atlas import ACCFv3, boundaries_from_id_map
 
-VOL = Path("resources/atlas_from_figshare/annotation_volume_10um_by_index.npy")
-TMPL = Path("resources/atlas_from_figshare/template_volume_10um.npy")
-ST = Path("resources/allenCCF/structure_tree_safe_2017.csv")
+# Wherever ccf_data would find them -- which includes ~/.asovi/atlas/, the target
+# `asovi-atlas --download` writes to, not only the legacy repo-relative dirs.
+# Hardcoding resources/ meant this test skipped on every machine that had run the
+# documented setup command.
+from asvimg import ccf_data as _ccf
+
+_vols = _ccf.find_ccf_volumes()
+VOL, TMPL = _vols if _vols else (Path("annotation_volume_10um_by_index.npy"),
+                                 Path("template_volume_10um.npy"))
+ST = _ccf.find_structure_tree() or Path("structure_tree_safe_2017.csv")
 SHIPPED = TEST_ATLAS_OR_DEFAULT
-_HAVE_VOL = VOL.exists() and TMPL.exists() and ST.exists()
+_HAVE_VOL = bool(_vols) and Path(ST).exists()
 
 
 # ---- pure logic ------------------------------------------------------------
