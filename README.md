@@ -373,7 +373,7 @@ is one group, and a group that contains at least one `donner` gets the
 regression; a group with only `source` frames gets a percentile-baseline dF/F
 instead. That is the whole rule — everything below follows from it.
 
-![Excitation timing and channel roles](docs/imgs/channel_roles.png)
+![Excitation timing for three acquisitions: the exposure trace and the 405 / 488 / 561 pulses, frame by frame](docs/imgs/channel_roles.png)
 
 | | Excitation cycle | `channels_name` | `channels_prop` | dF/F per group |
 | --- | --- | --- | --- | --- |

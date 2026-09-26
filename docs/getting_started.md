@@ -425,7 +425,7 @@ group. If that group contains a `donner`, its dF/F is computed by regressing the
 reference out. If it is all `source`, the dF/F comes from a percentile baseline
 instead. Nothing else decides it.
 
-![Excitation timing and channel roles](imgs/channel_roles.png)
+![Excitation timing for three acquisitions: the exposure trace and the 405 / 488 / 561 pulses, frame by frame](imgs/channel_roles.png)
 
 | | Excitation | `channels_name` | `channels_prop` | What you get |
 | --- | --- | --- | --- | --- |
