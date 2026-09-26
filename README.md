@@ -726,3 +726,38 @@ in `src/asvimg/wfci.py` follows David Whitney's `baselinePercentileFilter.m`
 (MPFI). The bundled atlas is derived from the Allen CCFv3. Origins, terms and what
 is derived from what are recorded in
 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
+## Citation
+
+If this software was part of how you got a result, please cite it:
+
+> Takeuchi, R., & Sato, A. Y. (2026). *ASoVi Imager* (version 0.1.0).
+> https://github.com/OSKD-lab/asovi-imager
+
+```bibtex
+@software{asovi_imager,
+  author  = {Takeuchi, Ryosuke and Sato, Akinori Y},
+  title   = {ASoVi Imager: a wide-field cortical imaging analysis pipeline},
+  year    = {2026},
+  version = {0.1.0},
+  url     = {https://github.com/OSKD-lab/asovi-imager}
+}
+```
+
+The machine-readable form is [`CITATION.cff`](CITATION.cff), which is what
+GitHub's **Cite this repository** button reads.
+
+**Cite the methods separately.** The entry above credits this implementation;
+what it implements is other people's work, and that is what a reader needs in
+order to know what was done to the data. At minimum, for a typical run:
+
+| If you used | Cite |
+| --- | --- |
+| registration | Guizar-Sicairos M, Thurman ST, Fienup JR. *Efficient subpixel image registration algorithms.* Opt. Lett. 33(2):156–158 (2008). doi:[10.1364/OL.33.000156](https://doi.org/10.1364/OL.33.000156) |
+| atlas registration | Wang Q, et al. *The Allen Mouse Brain Common Coordinate Framework: A 3D Reference Atlas.* Cell 181(4):936–953 (2020). doi:[10.1016/j.cell.2020.04.007](https://doi.org/10.1016/j.cell.2020.04.007) — **this one is asked for by the Allen Institute's terms**, not only by convention |
+| haemodynamic correction (dF/F) | Musall S, Kaufman MT, et al. *Single-trial neural dynamics are dominated by richly varied movements.* Nat. Neurosci. 22:1677–1686 (2019). doi:[10.1038/s41593-019-0502-4](https://doi.org/10.1038/s41593-019-0502-4) |
+| ICA denoising | Hyvärinen A, Oja E. *Independent component analysis: algorithms and applications.* Neural Networks 13(4-5):411–430 (2000). doi:[10.1016/S0893-6080(00)00026-5](https://doi.org/10.1016/S0893-6080(00)00026-5) |
+
+The same four are carried in `CITATION.cff` under `references`, and
+[Inspiration & references](#inspiration--references) above has the full list
+with what each contributed.
