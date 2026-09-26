@@ -406,6 +406,48 @@ For a first run, only these matter. Leave everything else at its default.
 > 💡 Fields marked with **`*`** belong to the reproducibility set (`db`). The
 > channel settings describe the experiment itself, so treat them carefully.
 
+#### Getting `channels_name` and `channels_prop` right
+
+These two are where first runs go wrong, so they are worth a minute.
+
+Together they describe **one cycle of camera frames, in the order the camera
+wrote them**. `channels_name` says which probe a frame belongs to;
+`channels_prop` says what the frame is *for*:
+
+- **`source`** — the signal you actually want.
+- **`donner`** — a reference frame, taken at a wavelength where the probe barely
+  responds to calcium. What it picks up is mostly blood flow and bleaching — the
+  same contamination sitting in the source frame, which is why subtracting it
+  cleans the signal up.
+
+**Frames pair by name.** Every frame with the same `channels_name` forms one
+group. If that group contains a `donner`, its dF/F is computed by regressing the
+reference out. If it is all `source`, the dF/F comes from a percentile baseline
+instead. Nothing else decides it.
+
+![Excitation timing and channel roles](imgs/channel_roles.png)
+
+| | Excitation | `channels_name` | `channels_prop` | What you get |
+| --- | --- | --- | --- | --- |
+| **A** | 405 / 488 | `GCaMP,GCaMP` | `donner,source` | GCaMP, with the 405 reference removed |
+| **B** | 405 / 488 / 561 | `GCaMP,GCaMP,RCaMP` | `donner,source,source` | GCaMP referenced; RCaMP from a baseline |
+| **C** | 488 / 561 | `GCaMP,RCaMP` | `source,source` | both from a baseline |
+
+The thing that catches people is **B**: the 405 frame is named `GCaMP`, not
+`405`. It is named after the probe it is a reference *for*. Call it something
+else and it becomes its own group — a reference with nothing to reference, while
+GCaMP loses the correction it needed.
+
+If you have no reference wavelength at all, every entry is `source` (case **C**)
+and the analysis still runs — you just get the baseline dF/F rather than the
+corrected one.
+
+**The order is your camera's, not a convention.** In **A** the reference comes
+first only because the 405 frame comes first. Enter them in the order they were
+acquired, then press **Quick Preview** (5-3) to see the labels the software is
+about to assign. If the cycle does not match your recording, every frame after
+the first is mislabelled.
+
 ### 5-3. First, check with Quick Preview
 
 Press **Quick Preview** (top right) and the **first 12 frames of the first file**

@@ -357,13 +357,45 @@ uv run python -c "import dataclasses as d; from asvimg import PipelineConfig as 
 | `demux_start_offset` | Global demux phase rotation (`0..cycle_len-1`): frame 0 is assigned `channels_name[demux_start_offset]`. The simple "fix the starting phase" knob. A `demux_correction.json` written by the demux editor (`asovi-demux`) **overrides** this when present and can additionally encode mid-recording phase-slip edits. |
 | `channels_slip` | Per-**input-file** phase, one entry per file in read order (blank = none). `[0, 1, 0]` says the 2nd file's channel cycle starts one step in — its first frame is `channels_name[1]` — which is what a few dropped frames at the previous file's tail look like. Composes with `demux_start_offset`; a demux-editor sidecar still overrides both. Use **Quick Preview (All)** to see each file's head and confirm it. |
 
-Worked examples — the pair must describe the acquisition exactly:
+#### `source` and `donner`, by excitation pattern
+
+These two lists describe **one cycle of camera frames**, in the order the camera
+wrote them. `channels_name` says which probe a frame belongs to; `channels_prop`
+says what that frame is *for*:
+
+- **`source`** — the signal you want.
+- **`donner`** — a reference frame, taken at a wavelength where the probe is
+  (near-)insensitive to calcium, so what it carries is the haemodynamic and
+  bleaching variation the source frame also picked up.
+
+**Frames pair by name, not by position.** Every frame sharing a `channels_name`
+is one group, and a group that contains at least one `donner` gets the
+regression; a group with only `source` frames gets a percentile-baseline dF/F
+instead. That is the whole rule — everything below follows from it.
+
+![Excitation timing and channel roles](docs/imgs/channel_roles.png)
+
+| | Excitation cycle | `channels_name` | `channels_prop` | dF/F per group |
+| --- | --- | --- | --- | --- |
+| **A** | 405 / 488 | `["GCaMP", "GCaMP"]` | `["donner", "source"]` | GCaMP: 405 reference regressed out of 488 |
+| **B** | 405 / 488 / 561 | `["GCaMP", "GCaMP", "RCaMP"]` | `["donner", "source", "source"]` | GCaMP: regression · RCaMP: baseline (561 has no reference of its own) |
+| **C** | 488 / 561 | `["GCaMP", "RCaMP"]` | `["source", "source"]` | both: baseline |
+
+In **B**, the 405 frame is named `GCaMP` because that is the probe it is the
+reference *for*. Naming it `"405"` would make it a group of its own — one with a
+donner and no source, which produces nothing — and leave GCaMP unreferenced.
+
+Two more, for shapes the diagram does not cover:
 
 | Acquisition | `channels_name` | `channels_prop` |
 | --- | --- | --- |
-| Alternating blue / violet (the classic WFCI ratiometric pair) | `["BL", "BL"]` | `["source", "donner"]` |
-| Single channel, no hemodynamic reference | `["BL"]` | `["source"]` |
-| 4-colour excitation | `["GCaMP", "jRGECO", "GCaMP", "jRGECO"]` | `["donner", "source", "source", "source"]` |
+| Single channel, no haemodynamic reference | `["BL"]` | `["source"]` |
+| Blue / violet with the violet second | `["BL", "BL"]` | `["source", "donner"]` |
+
+The order is the acquisition's, not a convention: **A** has the reference first
+because the 405 frame comes first. Put them the way your camera wrote them, and
+confirm it with **Quick Preview** before running — a cycle that does not match
+the recording mislabels every frame after the first.
 
 ### Preprocessing
 
