@@ -1,7 +1,7 @@
 """Child-process entry: control-point selection in its own dpg context.
 
 Invoked as ``python -m asvimg.gui.subproc_cpselect <req> <res>``.
-Reads a pickled request (source images, atlas RGB, boundaries, labels), opens
+Reads a pickled request (source images, atlas RGB, atlas overlay, labels), opens
 the standalone ``cpselect_gui`` (which creates and destroys its own dearpygui
 context), and writes the pickled ``(src_pts, ref_pts)`` result — or ``None``
 if the user cancelled.
@@ -26,7 +26,7 @@ def main(argv: list[str]) -> int:
         req["source_imgs"],
         req["ref_rgb"],
         n_default_pairs=req.get("n_default_pairs", 2),
-        boundaries=req.get("boundaries"),
+        **req.get("overlay", {}),
         source_labels=req.get("labels"),
         title=req.get("title", "Control Point Selection"),
     )

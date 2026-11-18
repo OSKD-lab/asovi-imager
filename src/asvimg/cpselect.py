@@ -44,6 +44,35 @@ def _normalize_rgba(image: np.ndarray) -> np.ndarray:
     return img.astype(np.float32)
 
 
+def atlas_overlay_kwargs(atlas) -> dict:
+    """``cpselect_gui`` keyword arguments that depend on the atlas in use.
+
+    Every caller must pass these: the defaults of ``cpselect_gui`` describe the
+    legacy MATLAB atlas only (285x285, boundaries stored at 4x -> ``0.25``).
+    An atlas built by ``asovi-atlas`` stores its boundaries in atlas pixels
+    (``atlas.scale == 1.0``) and may have any ``--hw``, so both the boundary
+    scale and the preset landmark positions have to come from the atlas.
+
+    The preset landmarks are the atlas's own stored ``fixed_points`` (rows
+    bregma / lambda / anterior, see ``atlas_build._fixed_points``), not a
+    recomputation of them: "RSC Edge" is row 1 and "Front Edge" row 2.  On the
+    legacy atlas those are exactly ``_DEFAULT_LANDMARKS``.  An atlas without
+    the three stored points keeps the defaults.
+    """
+    landmarks = dict(_DEFAULT_LANDMARKS)
+    fp = np.asarray(atlas.fixed_points, dtype=np.float64)
+    if fp.ndim == 2 and fp.shape[0] >= 3 and fp.shape[1] == 2:
+        landmarks = {
+            "Front Edge": (float(fp[2, 0]), float(fp[2, 1])),
+            "RSC Edge": (float(fp[1, 0]), float(fp[1, 1])),
+        }
+    return {
+        "boundaries": atlas.boundaries,
+        "boundary_scale": float(atlas.scale),
+        "ref_landmarks": landmarks,
+    }
+
+
 def cpselect_gui(
     source_img: np.ndarray | list[np.ndarray],
     reference_img: np.ndarray,

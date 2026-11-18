@@ -84,10 +84,13 @@ class GuiBridge:
             f"Mean Ch{config.ch_for_annotation} "
             f"({config.channels_name[config.ch_for_annotation]})"
         )
+        from asvimg.cpselect import atlas_overlay_kwargs
+
         request = {
             "source_imgs": [source_img] + list(extra_imgs or []),
             "ref_rgb": atlas.image_rgb,
-            "boundaries": atlas.boundaries,
+            # boundaries + boundary_scale + ref_landmarks, as this atlas needs them
+            "overlay": atlas_overlay_kwargs(atlas),
             "labels": [default_label] + list(extra_labels or []),
             "n_default_pairs": 2,
             "title": "Control Point Selection",
