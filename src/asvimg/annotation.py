@@ -549,7 +549,7 @@ def resolve_marks(
         return None, None
 
     if mode == "gui":
-        from .cpselect import cpselect_gui
+        from .cpselect import atlas_overlay_kwargs, cpselect_gui
 
         if marks_path.exists():
             old_path = marks_path.with_suffix(".mat.old")
@@ -568,8 +568,8 @@ def resolve_marks(
             all_imgs,
             atlas.image_rgb,
             n_default_pairs=2,
-            boundaries=atlas.boundaries,
             source_labels=all_labels,
+            **atlas_overlay_kwargs(atlas),
         )
         if result is None:
             print("GUI cancelled — no marks saved.")

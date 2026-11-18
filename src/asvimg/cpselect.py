@@ -44,6 +44,26 @@ def _normalize_rgba(image: np.ndarray) -> np.ndarray:
     return img.astype(np.float32)
 
 
+def atlas_overlay_kwargs(atlas) -> dict:
+    """``cpselect_gui`` keyword arguments that depend on the atlas in use.
+
+    Every caller must pass these: the defaults of ``cpselect_gui`` describe the
+    legacy MATLAB atlas only (285x285, boundaries stored at 4x -> ``0.25``).
+    An atlas built by ``asovi-atlas`` stores its boundaries in atlas pixels
+    (``atlas.scale == 1.0``) and may have any ``--hw``, so both the boundary
+    scale and the preset landmark positions have to come from the atlas.
+    """
+    h, w = atlas.shape_hw
+    sr, sc = h / 285.0, w / 285.0
+    return {
+        "boundaries": atlas.boundaries,
+        "boundary_scale": float(atlas.scale),
+        "ref_landmarks": {
+            name: (r * sr, c * sc) for name, (r, c) in _DEFAULT_LANDMARKS.items()
+        },
+    }
+
+
 def cpselect_gui(
     source_img: np.ndarray | list[np.ndarray],
     reference_img: np.ndarray,
