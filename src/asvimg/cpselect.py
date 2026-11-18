@@ -52,15 +52,24 @@ def atlas_overlay_kwargs(atlas) -> dict:
     An atlas built by ``asovi-atlas`` stores its boundaries in atlas pixels
     (``atlas.scale == 1.0``) and may have any ``--hw``, so both the boundary
     scale and the preset landmark positions have to come from the atlas.
+
+    The preset landmarks are the atlas's own stored ``fixed_points`` (rows
+    bregma / lambda / anterior, see ``atlas_build._fixed_points``), not a
+    recomputation of them: "RSC Edge" is row 1 and "Front Edge" row 2.  On the
+    legacy atlas those are exactly ``_DEFAULT_LANDMARKS``.  An atlas without
+    the three stored points keeps the defaults.
     """
-    h, w = atlas.shape_hw
-    sr, sc = h / 285.0, w / 285.0
+    landmarks = dict(_DEFAULT_LANDMARKS)
+    fp = np.asarray(atlas.fixed_points, dtype=np.float64)
+    if fp.ndim == 2 and fp.shape[0] >= 3 and fp.shape[1] == 2:
+        landmarks = {
+            "Front Edge": (float(fp[2, 0]), float(fp[2, 1])),
+            "RSC Edge": (float(fp[1, 0]), float(fp[1, 1])),
+        }
     return {
         "boundaries": atlas.boundaries,
         "boundary_scale": float(atlas.scale),
-        "ref_landmarks": {
-            name: (r * sr, c * sc) for name, (r, c) in _DEFAULT_LANDMARKS.items()
-        },
+        "ref_landmarks": landmarks,
     }
 
 

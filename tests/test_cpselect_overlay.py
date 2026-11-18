@@ -41,9 +41,40 @@ def test_overlay_kwargs_follow_the_atlas(tmp_path, hw):
     assert drawn[:, 0].max() == pytest.approx(3 * h // 4 - 0.5)
     assert drawn[:, 1].max() == pytest.approx(7 * w // 8 - 0.5)
 
-    # Preset landmarks sit on the midline, at the 285-frame rows scaled to H.
-    assert kw["ref_landmarks"]["Front Edge"] == pytest.approx((55.0 * h / 285, w / 2))
-    assert kw["ref_landmarks"]["RSC Edge"] == pytest.approx((212.5 * h / 285, w / 2))
+    # Preset landmarks are the atlas's stored fixed_points, not a recomputation:
+    # the midline of a W-wide image is (W-1)/2, which is what fixedPos holds.
+    fp = atlas.fixed_points
+    assert kw["ref_landmarks"]["Front Edge"] == tuple(fp[2])
+    assert kw["ref_landmarks"]["RSC Edge"] == tuple(fp[1])
+    assert kw["ref_landmarks"]["Front Edge"][1] == (w - 1) / 2
+
+
+def test_overlay_kwargs_keep_legacy_atlas_behaviour():
+    """The legacy MATLAB atlas (boundaries at 4x, fixedPos at col 142.5) must get
+    exactly what cpselect_gui's defaults gave it before."""
+    from asvimg.cpselect import _DEFAULT_LANDMARKS
+
+    legacy = ACCFv3(
+        image_rgb=np.zeros((285, 285, 3), np.float32),
+        region_ids=np.ones((285, 285), np.uint16),
+        boundaries=[[]],
+        fixed_points=np.array([[128.75, 142.5], [212.5, 142.5], [55.0, 142.5]]),
+    )
+    kw = atlas_overlay_kwargs(legacy)
+    assert kw["boundary_scale"] == 0.25
+    assert kw["ref_landmarks"] == _DEFAULT_LANDMARKS
+
+
+def test_overlay_kwargs_fall_back_without_stored_landmarks():
+    from asvimg.cpselect import _DEFAULT_LANDMARKS
+
+    atlas = ACCFv3(
+        image_rgb=np.zeros((285, 285, 3), np.float32),
+        region_ids=np.ones((285, 285), np.uint16),
+        boundaries=[[]],
+        fixed_points=np.zeros((0, 2)),
+    )
+    assert atlas_overlay_kwargs(atlas)["ref_landmarks"] == _DEFAULT_LANDMARKS
 
 
 def test_resolve_marks_passes_the_atlas_overlay(tmp_path, monkeypatch):
@@ -62,7 +93,7 @@ def test_resolve_marks_passes_the_atlas_overlay(tmp_path, monkeypatch):
     resolve_marks(config, tmp_path, atlas, np.zeros((8, 8)))
 
     assert seen["boundary_scale"] == 1.0
-    assert seen["ref_landmarks"]["Front Edge"] == pytest.approx((55.0 * 512 / 285, 256.0))
+    assert seen["ref_landmarks"]["Front Edge"] == tuple(atlas.fixed_points[2])
 
 
 def test_gui_bridge_request_carries_the_atlas_overlay(tmp_path):
